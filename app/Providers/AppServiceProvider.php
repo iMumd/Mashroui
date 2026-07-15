@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Enums\AccessLevelEnum;
+use App\Enums\RoleEnum;
+use App\Models\User;
+use App\Support\Rbac\AccessControl;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +24,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::before(fn (User $user) => $user->role === RoleEnum::SuperAdmin ? true : null);
+
+        Gate::define('module', fn (User $user, string $module) => app(AccessControl::class)->can($user, $module) !== AccessLevelEnum::Blocked);
     }
 }
