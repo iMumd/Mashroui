@@ -9,6 +9,8 @@ use App\Models\UserRestriction;
 
 class AccessControl
 {
+    public const MODULES = ['projects', 'proposals', 'tasks', 'meetings'];
+
     public function can(User $user, string $module): AccessLevelEnum
     {
         $restriction = UserRestriction::query()
