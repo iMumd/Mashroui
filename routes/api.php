@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\SpecializationController;
+use App\Http\Controllers\Api\TeamController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -22,5 +23,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('departments', DepartmentController::class);
         Route::apiResource('specializations', SpecializationController::class);
         Route::apiResource('academic-terms', AcademicTermController::class);
+
+        Route::middleware('term')->group(function () {
+            Route::apiResource('teams', TeamController::class)->only(['index', 'store', 'show']);
+        });
     });
 });
