@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\DiscussionStatusEnum;
+use App\Models\Scopes\TermScope;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,6 +21,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class Discussion extends Model
 {
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new TermScope);
+    }
+
     protected function casts(): array
     {
         return [

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\TermScope;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 #[Fillable(['name', 'supervisor_id', 'specialization_id', 'term_id', 'leader_id'])]
 class Team extends Model
 {
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new TermScope);
+    }
+
     public function supervisor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'supervisor_id');
