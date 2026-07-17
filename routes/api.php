@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\SpecializationController;
 use App\Http\Controllers\Api\TeamController;
+use App\Http\Controllers\Api\TeamImportController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -26,6 +27,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::middleware('term')->group(function () {
             Route::apiResource('teams', TeamController::class)->only(['index', 'store', 'show']);
+
+            Route::post('/teams/import/preview', [TeamImportController::class, 'preview']);
+            Route::post('/teams/import/confirm', [TeamImportController::class, 'confirm']);
         });
     });
 });
