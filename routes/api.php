@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\InviteController;
+use App\Http\Controllers\Api\SpecializationController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -18,5 +19,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/users/{user}/invite', [InviteController::class, 'invite']);
 
         Route::apiResource('departments', DepartmentController::class);
+        Route::apiResource('specializations', SpecializationController::class);
     });
 });
