@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CheckRestriction;
+use App\Http\Middleware\EnsureTerm;
 use App\Http\Middleware\ForcePasswordChange;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'restriction' => CheckRestriction::class,
             'force-password-change' => ForcePasswordChange::class,
+            'term' => EnsureTerm::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
