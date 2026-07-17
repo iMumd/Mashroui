@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Enums\AccessLevelEnum;
 use App\Enums\RoleEnum;
 use App\Models\User;
+use App\Support\CurrentTerm;
 use App\Support\Rbac\AccessControl;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -16,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(CurrentTerm::class);
     }
 
     /**
