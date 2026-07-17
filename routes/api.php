@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AcademicTermController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\InviteController;
@@ -20,5 +21,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::apiResource('departments', DepartmentController::class);
         Route::apiResource('specializations', SpecializationController::class);
+        Route::apiResource('academic-terms', AcademicTermController::class);
     });
 });
