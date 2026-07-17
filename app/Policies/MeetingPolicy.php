@@ -25,13 +25,18 @@ class MeetingPolicy
     public function create(User $user): bool
     {
         return $this->accessControl->can($user, 'meetings') === AccessLevelEnum::Full
-            && $user->role === RoleEnum::Supervisor;
+            && in_array($user->role, [RoleEnum::Supervisor, RoleEnum::TeamLeader], true);
     }
 
     public function update(User $user, Meeting $meeting): bool
     {
-        return $this->accessControl->can($user, 'meetings') === AccessLevelEnum::Full
-            && $user->id === $meeting->created_by;
+        if ($this->accessControl->can($user, 'meetings') !== AccessLevelEnum::Full) {
+            return false;
+        }
+
+        return $user->id === $meeting->created_by
+            || $user->id === $meeting->team->supervisor_id
+            || $user->id === $meeting->team->leader_id;
     }
 
     public function delete(User $user, Meeting $meeting): bool
