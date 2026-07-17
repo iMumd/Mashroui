@@ -27,5 +27,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(fn (User $user) => $user->role === RoleEnum::SuperAdmin ? true : null);
 
         Gate::define('module', fn (User $user, string $module) => app(AccessControl::class)->can($user, $module) !== AccessLevelEnum::Blocked);
+
+        Gate::define('manage-org-structure', fn (User $user) => false);
     }
 }
