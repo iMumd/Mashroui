@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\FinalReportController;
 use App\Http\Controllers\Api\InviteController;
+use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\ProjectFileController;
 use App\Http\Controllers\Api\ProposalController;
 use App\Http\Controllers\Api\SpecializationController;
@@ -45,6 +46,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::get('/projects/{project}/final-reports', [FinalReportController::class, 'index']);
             Route::post('/projects/{project}/final-reports', [FinalReportController::class, 'store']);
+
+            Route::get('/teams/{team}/meetings', [MeetingController::class, 'index']);
+            Route::post('/teams/{team}/meetings', [MeetingController::class, 'store']);
+            Route::get('/meetings/{meeting}', [MeetingController::class, 'show']);
         });
     });
 });
