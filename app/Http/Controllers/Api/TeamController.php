@@ -13,7 +13,7 @@ class TeamController extends Controller
 {
     public function index()
     {
-        return response()->json(Team::with('members.student', 'supervisor', 'leader')->get());
+        return response()->json(Team::with('members.student', 'supervisor', 'leader', 'project')->get());
     }
 
     public function store(Request $request, TeamService $teamService)
@@ -39,6 +39,6 @@ class TeamController extends Controller
 
     public function show(Team $team)
     {
-        return response()->json($team->load('members.student', 'supervisor', 'leader'));
+        return response()->json($team->load('members.student', 'supervisor', 'leader', 'project'));
     }
 }

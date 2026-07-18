@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\ProjectStatusEnum;
 use App\Enums\RoleEnum;
+use App\Models\Project;
+use App\Models\Specialization;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
@@ -49,7 +52,19 @@ class TeamService
 
             User::whereKey($data['leader_id'])->update(['role' => RoleEnum::TeamLeader]);
 
-            return $team->load('members.student');
+            $departmentId = Specialization::whereKey($data['specialization_id'])->value('department_id');
+
+            Project::create([
+                'team_id' => $team->id,
+                'supervisor_id' => $data['supervisor_id'],
+                'department_id' => $departmentId,
+                'specialization_id' => $data['specialization_id'],
+                'term_id' => $termId,
+                'status' => ProjectStatusEnum::Proposed,
+                'is_featured' => false,
+            ]);
+
+            return $team->load('members.student', 'project');
         });
     }
 }
