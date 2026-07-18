@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ProposalController;
 use App\Http\Controllers\Api\SpecializationController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\TeamImportController;
+use App\Http\Controllers\Api\UserRestrictionController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -28,6 +29,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('departments', DepartmentController::class);
         Route::apiResource('specializations', SpecializationController::class);
         Route::apiResource('academic-terms', AcademicTermController::class);
+
+        Route::get('/users/{user}/restrictions', [UserRestrictionController::class, 'index']);
+        Route::post('/users/{user}/restrictions', [UserRestrictionController::class, 'store']);
+        Route::delete('/restrictions/{restriction}', [UserRestrictionController::class, 'destroy']);
 
         Route::middleware('term')->group(function () {
             Route::apiResource('teams', TeamController::class)->only(['index', 'store', 'show']);
