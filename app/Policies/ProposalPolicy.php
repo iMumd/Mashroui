@@ -36,11 +36,7 @@ class ProposalPolicy
 
     public function review(User $user, Proposal $proposal): bool
     {
-        if ($this->accessControl->can($user, 'proposals') !== AccessLevelEnum::Full) {
-            return false;
-        }
-
-        return $user->role === RoleEnum::Committee
-            || ($user->role === RoleEnum::Supervisor && $proposal->project->supervisor_id === $user->id);
+        return $this->accessControl->can($user, 'proposals') === AccessLevelEnum::Full
+            && $user->role === RoleEnum::Committee;
     }
 }
