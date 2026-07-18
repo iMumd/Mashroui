@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\AcademicTermController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
+use App\Http\Controllers\Api\FinalReportController;
 use App\Http\Controllers\Api\InviteController;
+use App\Http\Controllers\Api\ProjectFileController;
 use App\Http\Controllers\Api\ProposalController;
 use App\Http\Controllers\Api\SpecializationController;
 use App\Http\Controllers\Api\TeamController;
@@ -37,6 +39,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/proposals/{proposal}', [ProposalController::class, 'update']);
             Route::post('/proposals/{proposal}/approve', [ProposalController::class, 'approve']);
             Route::post('/proposals/{proposal}/reject', [ProposalController::class, 'reject']);
+
+            Route::get('/projects/{project}/files', [ProjectFileController::class, 'index']);
+            Route::post('/projects/{project}/files', [ProjectFileController::class, 'store']);
+
+            Route::get('/projects/{project}/final-reports', [FinalReportController::class, 'index']);
+            Route::post('/projects/{project}/final-reports', [FinalReportController::class, 'store']);
         });
     });
 });
