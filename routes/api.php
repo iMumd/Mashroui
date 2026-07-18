@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AcademicTermController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\InviteController;
+use App\Http\Controllers\Api\ProposalController;
 use App\Http\Controllers\Api\SpecializationController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\TeamImportController;
@@ -30,6 +31,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::post('/teams/import/preview', [TeamImportController::class, 'preview']);
             Route::post('/teams/import/confirm', [TeamImportController::class, 'confirm']);
+
+            Route::post('/proposals', [ProposalController::class, 'store']);
+            Route::get('/proposals/{proposal}', [ProposalController::class, 'show']);
+            Route::put('/proposals/{proposal}', [ProposalController::class, 'update']);
+            Route::post('/proposals/{proposal}/approve', [ProposalController::class, 'approve']);
+            Route::post('/proposals/{proposal}/reject', [ProposalController::class, 'reject']);
         });
     });
 });
