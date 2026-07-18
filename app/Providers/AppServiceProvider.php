@@ -30,5 +30,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('module', fn (User $user, string $module) => app(AccessControl::class)->can($user, $module) !== AccessLevelEnum::Blocked);
 
         Gate::define('manage-org-structure', fn (User $user) => false);
+
+        Gate::define('manage-restrictions', fn (User $user) => false);
     }
 }
