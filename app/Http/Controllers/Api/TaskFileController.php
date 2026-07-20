@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TaskFileResource;
 use App\Models\Task;
 use App\Models\TaskFile;
 use App\Services\TaskFileService;
@@ -15,7 +16,7 @@ class TaskFileController extends Controller
     {
         Gate::authorize('viewAny', [TaskFile::class, $task]);
 
-        return response()->json($task->files()->with('uploadedBy')->get());
+        return TaskFileResource::collection($task->files()->with('uploadedBy')->get());
     }
 
     public function store(Request $request, Task $task, TaskFileService $service)

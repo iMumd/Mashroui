@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TeamResource;
 use App\Models\Team;
 use App\Services\TeamService;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ class TeamController extends Controller
 {
     public function index()
     {
-        return response()->json(Team::with('members.student', 'supervisor', 'leader', 'project')->get());
+        return TeamResource::collection(Team::with('members.student', 'supervisor', 'leader', 'project')->get());
     }
 
     public function store(Request $request, TeamService $teamService)
@@ -39,6 +40,6 @@ class TeamController extends Controller
 
     public function show(Team $team)
     {
-        return response()->json($team->load('members.student', 'supervisor', 'leader', 'project'));
+        return new TeamResource($team->load('members.student', 'supervisor', 'leader', 'project'));
     }
 }

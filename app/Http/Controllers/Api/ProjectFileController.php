@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProjectFileResource;
 use App\Models\Project;
 use App\Models\ProjectFile;
 use App\Services\ProjectFileService;
@@ -15,7 +16,7 @@ class ProjectFileController extends Controller
     {
         Gate::authorize('viewAny', [ProjectFile::class, $project]);
 
-        return response()->json($project->files()->with('uploadedBy')->latest('uploaded_at')->get());
+        return ProjectFileResource::collection($project->files()->with('uploadedBy')->latest('uploaded_at')->get());
     }
 
     public function store(Request $request, Project $project, ProjectFileService $service)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\MeetingResource;
 use App\Models\Meeting;
 use App\Models\Team;
 use App\Services\MeetingService;
@@ -15,7 +16,7 @@ class MeetingController extends Controller
     {
         Gate::authorize('viewAny', [Meeting::class, $team]);
 
-        return response()->json($team->meetings()->with('createdBy')->orderBy('scheduled_at')->get());
+        return MeetingResource::collection($team->meetings()->with('createdBy')->orderBy('scheduled_at')->get());
     }
 
     public function store(Request $request, Team $team, MeetingService $service)
@@ -40,6 +41,6 @@ class MeetingController extends Controller
     {
         Gate::authorize('view', $meeting);
 
-        return response()->json($meeting->load('createdBy', 'team'));
+        return new MeetingResource($meeting->load('createdBy', 'team'));
     }
 }

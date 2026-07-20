@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TaskNoteResource;
 use App\Models\Task;
 use App\Models\TaskNote;
 use App\Services\TaskNoteService;
@@ -15,7 +16,7 @@ class TaskNoteController extends Controller
     {
         Gate::authorize('viewAny', [TaskNote::class, $task]);
 
-        return response()->json($task->notes()->with('user')->get());
+        return TaskNoteResource::collection($task->notes()->with('user')->get());
     }
 
     public function store(Request $request, Task $task, TaskNoteService $service)

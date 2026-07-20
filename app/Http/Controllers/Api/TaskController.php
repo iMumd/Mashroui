@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\TaskStatusEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TaskResource;
 use App\Models\AuditLog;
 use App\Models\Task;
 use App\Models\Team;
@@ -19,7 +20,7 @@ class TaskController extends Controller
     {
         Gate::authorize('viewAny', [Task::class, $team]);
 
-        return response()->json($team->tasks()->with('createdBy')->get());
+        return TaskResource::collection($team->tasks()->with('createdBy')->get());
     }
 
     public function store(Request $request, Team $team, TaskService $service)
@@ -42,7 +43,7 @@ class TaskController extends Controller
     {
         Gate::authorize('view', $task);
 
-        return response()->json($task->load('createdBy', 'files', 'notes'));
+        return new TaskResource($task->load('createdBy', 'files.uploadedBy', 'notes.user'));
     }
 
     public function update(Request $request, Task $task)

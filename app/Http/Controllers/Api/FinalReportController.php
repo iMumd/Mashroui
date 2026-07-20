@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\FinalReportResource;
 use App\Models\FinalReport;
 use App\Models\Project;
 use App\Services\FinalReportService;
@@ -15,7 +16,7 @@ class FinalReportController extends Controller
     {
         Gate::authorize('viewAny', [FinalReport::class, $project]);
 
-        return response()->json($project->finalReports()->with('uploadedBy')->latest()->get());
+        return FinalReportResource::collection($project->finalReports()->with('uploadedBy')->latest()->get());
     }
 
     public function store(Request $request, Project $project, FinalReportService $service)

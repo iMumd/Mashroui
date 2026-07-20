@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProposalResource;
 use App\Models\Proposal;
 use App\Services\ProposalService;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ class ProposalController extends Controller
     {
         Gate::authorize('view', $proposal);
 
-        return response()->json($proposal->load('project', 'submittedBy', 'reviewedBy'));
+        return new ProposalResource($proposal->load('project', 'submittedBy', 'reviewedBy'));
     }
 
     public function store(Request $request, ProposalService $service)
