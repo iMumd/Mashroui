@@ -5,10 +5,12 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BulkNotifyController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DiscussionController;
+use App\Http\Controllers\Api\DiscussionExportController;
 use App\Http\Controllers\Api\FinalReportController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\MessageDeliveryController;
+use App\Http\Controllers\Api\ProgressExportController;
 use App\Http\Controllers\Api\ProjectFileController;
 use App\Http\Controllers\Api\ProposalController;
 use App\Http\Controllers\Api\SpecializationController;
@@ -71,6 +73,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/teams/{team}/meetings', [MeetingController::class, 'store']);
             Route::get('/meetings/{meeting}', [MeetingController::class, 'show']);
 
+            Route::get('/progress/export', [ProgressExportController::class, 'export']);
+
             Route::get('/teams/{team}/progress', [TaskController::class, 'progress']);
             Route::get('/teams/{team}/tasks', [TaskController::class, 'index']);
             Route::post('/teams/{team}/tasks', [TaskController::class, 'store']);
@@ -85,6 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/tasks/{task}/notes', [TaskNoteController::class, 'index']);
             Route::post('/tasks/{task}/notes', [TaskNoteController::class, 'store']);
 
+            Route::get('/discussions/export', [DiscussionExportController::class, 'export']);
             Route::apiResource('discussions', DiscussionController::class)->except(['create', 'edit']);
         });
     });
