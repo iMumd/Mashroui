@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AcademicTermController;
+use App\Http\Controllers\Api\AiProjectSourceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BulkNotifyController;
 use App\Http\Controllers\Api\DepartmentController;
@@ -48,6 +49,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/message-deliveries', [MessageDeliveryController::class, 'index']);
         Route::post('/message-deliveries/{delivery}/retry', [MessageDeliveryController::class, 'retry']);
+
+        Route::get('/ai/projects-source', [AiProjectSourceController::class, 'index']);
 
         Route::middleware('term')->group(function () {
             Route::get('/teams/export', [TeamExportController::class, 'export']);
