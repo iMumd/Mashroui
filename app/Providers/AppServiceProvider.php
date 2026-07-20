@@ -31,6 +31,6 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('manage-org-structure', fn (User $user) => false);
 
-        Gate::define('manage-restrictions', fn (User $user) => false);
+        Gate::define('manage-restrictions', fn (User $user) => $user->role === RoleEnum::Supervisor);
     }
 }

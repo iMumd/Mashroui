@@ -14,9 +14,11 @@ use Illuminate\Validation\Rule;
 
 class UserRestrictionController extends Controller
 {
-    public function index(User $user)
+    public function index(Request $request, User $user, UserRestrictionService $service)
     {
         Gate::authorize('manage-restrictions');
+
+        abort_unless($service->canView($user, $request->user()), 403);
 
         return response()->json($user->restrictions()->with('restrictedBy')->get());
     }
