@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\FileUploaded;
 use App\Models\Project;
 use App\Models\ProjectFile;
 use App\Models\User;
@@ -25,7 +26,7 @@ class ProjectFileService
             ->where('stage', $stage)
             ->max('version') + 1;
 
-        return ProjectFile::create([
+        $projectFile = ProjectFile::create([
             'project_id' => $project->id,
             'stage' => $stage,
             'file_path' => Storage::putFile('project_files', $file),
@@ -33,5 +34,9 @@ class ProjectFileService
             'uploaded_by' => $leader->id,
             'uploaded_at' => now(),
         ]);
+
+        FileUploaded::dispatch($projectFile, $leader);
+
+        return $projectFile;
     }
 }

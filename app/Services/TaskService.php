@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\TaskStatusEnum;
+use App\Events\TaskCreated;
 use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
@@ -18,12 +19,16 @@ class TaskService
             throw ValidationException::withMessages(['team_id' => 'هذا الفريق مش تبعك.']);
         }
 
-        return Task::create([
+        $task = Task::create([
             'team_id' => $team->id,
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'created_by' => $creator->id,
         ]);
+
+        TaskCreated::dispatch($task);
+
+        return $task;
     }
 
     public function changeStatus(Task $task, TaskStatusEnum $status, User $actor): Task

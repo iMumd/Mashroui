@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Enums\ProjectStatusEnum;
 use App\Enums\ProposalStatusEnum;
-use App\Models\Notification;
+use App\Events\ProposalReviewed;
 use App\Models\Project;
 use App\Models\Proposal;
 use App\Models\User;
@@ -80,13 +80,11 @@ class ProposalService
 
             $proposal->project()->update(['status' => ProjectStatusEnum::InProgress]);
 
-            Notification::create([
-                'user_id' => $proposal->submitted_by,
-                'type' => 'proposal_approved',
-                'message' => "تمت الموافقة على مقترح \"{$proposal->name}\".",
-            ]);
+            $proposal = $proposal->fresh();
 
-            return $proposal->fresh();
+            ProposalReviewed::dispatch($proposal);
+
+            return $proposal;
         });
     }
 
@@ -102,12 +100,10 @@ class ProposalService
             'rejection_reason' => $reason,
         ]);
 
-        Notification::create([
-            'user_id' => $proposal->submitted_by,
-            'type' => 'proposal_rejected',
-            'message' => "تم رفض مقترح \"{$proposal->name}\": {$reason}",
-        ]);
+        $proposal = $proposal->fresh();
 
-        return $proposal->fresh();
+        ProposalReviewed::dispatch($proposal);
+
+        return $proposal;
     }
 }

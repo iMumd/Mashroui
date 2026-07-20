@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ProposalStatusEnum;
+use App\Events\FileUploaded;
 use App\Models\FinalReport;
 use App\Models\Project;
 use App\Models\User;
@@ -24,10 +25,14 @@ class FinalReportService
             throw ValidationException::withMessages(['project_id' => 'الرفع يُتاح بعد اعتماد المقترح فقط.']);
         }
 
-        return FinalReport::create([
+        $finalReport = FinalReport::create([
             'project_id' => $project->id,
             'pdf_path' => Storage::putFile('final_reports', $file),
             'uploaded_by' => $leader->id,
         ]);
+
+        FileUploaded::dispatch($finalReport, $leader);
+
+        return $finalReport;
     }
 }

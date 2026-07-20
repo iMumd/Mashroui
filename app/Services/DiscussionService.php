@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Events\DiscussionScheduled;
 use App\Models\Discussion;
-use App\Models\Notification;
 use App\Models\Project;
 use App\Support\CurrentTerm;
 use Illuminate\Validation\ValidationException;
@@ -34,7 +34,7 @@ class DiscussionService
             'term_id' => $termId,
         ]);
 
-        $this->notifyTeam($discussion, $project);
+        DiscussionScheduled::dispatch($discussion);
 
         return $discussion;
     }
@@ -44,24 +44,5 @@ class DiscussionService
         $discussion->update($data);
 
         return $discussion;
-    }
-
-    private function notifyTeam(Discussion $discussion, Project $project): void
-    {
-        $message = "تم تحديد موعد المناقشة: {$discussion->discussion_date->toDateString()} في {$discussion->place}.";
-
-        if ($project->team->leader_id) {
-            Notification::create([
-                'user_id' => $project->team->leader_id,
-                'type' => 'discussion_scheduled',
-                'message' => $message,
-            ]);
-        }
-
-        Notification::create([
-            'user_id' => $discussion->supervisor_id,
-            'type' => 'discussion_scheduled',
-            'message' => $message,
-        ]);
     }
 }
