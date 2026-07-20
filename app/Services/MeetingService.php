@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\NotificationChannelEnum;
+use App\Events\MeetingCreated;
 use App\Models\Meeting;
-use App\Models\Notification;
+use App\Models\MeetingReminder;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
@@ -27,13 +29,19 @@ class MeetingService
             'created_by' => $creator->id,
         ]);
 
-        $recipient = $creator->id === $team->supervisor_id ? $team->leader_id : $team->supervisor_id;
-
-        Notification::create([
-            'user_id' => $recipient,
-            'type' => 'meeting',
-            'message' => "تم تحديد اجتماع جديد: \"{$meeting->title}\".",
+        MeetingReminder::create([
+            'meeting_id' => $meeting->id,
+            'remind_at' => $meeting->scheduled_at->clone()->subDay(),
+            'channel' => NotificationChannelEnum::Email,
         ]);
+
+        MeetingReminder::create([
+            'meeting_id' => $meeting->id,
+            'remind_at' => $meeting->scheduled_at->clone()->subHours(6),
+            'channel' => NotificationChannelEnum::Email,
+        ]);
+
+        MeetingCreated::dispatch($meeting);
 
         return $meeting;
     }
