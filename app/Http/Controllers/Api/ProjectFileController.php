@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ProjectFileResource;
 use App\Models\Project;
 use App\Models\ProjectFile;
+use App\Rules\AllowedDocumentTypes;
 use App\Services\ProjectFileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -25,7 +26,7 @@ class ProjectFileController extends Controller
 
         $data = $request->validate([
             'stage' => ['nullable', 'string', 'max:120'],
-            'file' => ['required', 'file', 'max:20480'],
+            'file' => ['required', 'file', 'mimes:'.AllowedDocumentTypes::MIMES, 'max:20480'],
         ]);
 
         $data['project_id'] = $project->id;

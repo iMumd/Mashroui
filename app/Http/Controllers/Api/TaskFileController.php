@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\TaskFileResource;
 use App\Models\Task;
 use App\Models\TaskFile;
+use App\Rules\AllowedDocumentTypes;
 use App\Services\TaskFileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -24,7 +25,7 @@ class TaskFileController extends Controller
         Gate::authorize('create', TaskFile::class);
 
         $request->validate([
-            'file' => ['required', 'file', 'max:10240'],
+            'file' => ['required', 'file', 'mimes:'.AllowedDocumentTypes::MIMES, 'max:10240'],
         ]);
 
         $taskFile = $service->upload($task, $request->file('file'), $request->user());
