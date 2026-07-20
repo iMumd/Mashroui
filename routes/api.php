@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AcademicTermController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
+use App\Http\Controllers\Api\DiscussionController;
 use App\Http\Controllers\Api\FinalReportController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\MeetingController;
@@ -75,6 +76,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::get('/tasks/{task}/notes', [TaskNoteController::class, 'index']);
             Route::post('/tasks/{task}/notes', [TaskNoteController::class, 'store']);
+
+            Route::apiResource('discussions', DiscussionController::class)->except(['create', 'edit']);
         });
     });
 });
