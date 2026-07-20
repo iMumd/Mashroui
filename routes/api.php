@@ -2,11 +2,13 @@
 
 use App\Http\Controllers\Api\AcademicTermController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BulkNotifyController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DiscussionController;
 use App\Http\Controllers\Api\FinalReportController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\MeetingController;
+use App\Http\Controllers\Api\MessageDeliveryController;
 use App\Http\Controllers\Api\ProjectFileController;
 use App\Http\Controllers\Api\ProposalController;
 use App\Http\Controllers\Api\SpecializationController;
@@ -38,6 +40,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/users/{user}/restrictions', [UserRestrictionController::class, 'index']);
         Route::post('/users/{user}/restrictions', [UserRestrictionController::class, 'store']);
         Route::delete('/restrictions/{restriction}', [UserRestrictionController::class, 'destroy']);
+
+        Route::post('/notify/bulk/preview', [BulkNotifyController::class, 'preview']);
+        Route::post('/notify/bulk/send', [BulkNotifyController::class, 'send']);
+
+        Route::get('/message-deliveries', [MessageDeliveryController::class, 'index']);
+        Route::post('/message-deliveries/{delivery}/retry', [MessageDeliveryController::class, 'retry']);
 
         Route::middleware('term')->group(function () {
             Route::get('/teams/export', [TeamExportController::class, 'export']);
