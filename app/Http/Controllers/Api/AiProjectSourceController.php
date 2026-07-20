@@ -22,7 +22,12 @@ class AiProjectSourceController extends Controller
         ]);
 
         $projects = Project::withoutGlobalScope(TermScope::class)
-            ->with(['department:id,name', 'specialization:id,name', 'academicTerm:id,name'])
+            ->with([
+                'department:id,name',
+                'specialization:id,name',
+                'academicTerm:id,name',
+                'proposal:id,project_id,name,description,problems,solutions,features_value',
+            ])
             ->when($data['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
             ->when($data['department_id'] ?? null, fn ($q, $id) => $q->where('department_id', $id))
             ->when($data['specialization_id'] ?? null, fn ($q, $id) => $q->where('specialization_id', $id))
