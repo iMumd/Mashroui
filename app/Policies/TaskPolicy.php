@@ -5,21 +5,25 @@ namespace App\Policies;
 use App\Enums\AccessLevelEnum;
 use App\Enums\RoleEnum;
 use App\Models\Task;
+use App\Models\Team;
 use App\Models\User;
 use App\Support\Rbac\AccessControl;
+use App\Support\Rbac\TeamMembership;
 
 class TaskPolicy
 {
-    public function __construct(private AccessControl $accessControl) {}
+    public function __construct(private AccessControl $accessControl, private TeamMembership $teamMembership) {}
 
-    public function viewAny(User $user): bool
+    public function viewAny(User $user, Team $team): bool
     {
-        return $this->accessControl->can($user, 'tasks') !== AccessLevelEnum::Blocked;
+        return $this->accessControl->can($user, 'tasks') !== AccessLevelEnum::Blocked
+            && $this->teamMembership->belongsTo($user, $team);
     }
 
     public function view(User $user, Task $task): bool
     {
-        return $this->accessControl->can($user, 'tasks') !== AccessLevelEnum::Blocked;
+        return $this->accessControl->can($user, 'tasks') !== AccessLevelEnum::Blocked
+            && $this->teamMembership->belongsTo($user, $task->team);
     }
 
     public function create(User $user): bool

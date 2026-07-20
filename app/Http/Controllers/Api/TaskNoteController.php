@@ -13,7 +13,7 @@ class TaskNoteController extends Controller
 {
     public function index(Task $task)
     {
-        Gate::authorize('viewAny', TaskNote::class);
+        Gate::authorize('viewAny', [TaskNote::class, $task]);
 
         return response()->json($task->notes()->with('user')->get());
     }

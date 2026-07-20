@@ -13,7 +13,7 @@ class TaskFileController extends Controller
 {
     public function index(Task $task)
     {
-        Gate::authorize('viewAny', TaskFile::class);
+        Gate::authorize('viewAny', [TaskFile::class, $task]);
 
         return response()->json($task->files()->with('uploadedBy')->get());
     }

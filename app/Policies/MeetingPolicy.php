@@ -5,21 +5,25 @@ namespace App\Policies;
 use App\Enums\AccessLevelEnum;
 use App\Enums\RoleEnum;
 use App\Models\Meeting;
+use App\Models\Team;
 use App\Models\User;
 use App\Support\Rbac\AccessControl;
+use App\Support\Rbac\TeamMembership;
 
 class MeetingPolicy
 {
-    public function __construct(private AccessControl $accessControl) {}
+    public function __construct(private AccessControl $accessControl, private TeamMembership $teamMembership) {}
 
-    public function viewAny(User $user): bool
+    public function viewAny(User $user, Team $team): bool
     {
-        return $this->accessControl->can($user, 'meetings') !== AccessLevelEnum::Blocked;
+        return $this->accessControl->can($user, 'meetings') !== AccessLevelEnum::Blocked
+            && $this->teamMembership->belongsTo($user, $team);
     }
 
     public function view(User $user, Meeting $meeting): bool
     {
-        return $this->accessControl->can($user, 'meetings') !== AccessLevelEnum::Blocked;
+        return $this->accessControl->can($user, 'meetings') !== AccessLevelEnum::Blocked
+            && $this->teamMembership->belongsTo($user, $meeting->team);
     }
 
     public function create(User $user): bool

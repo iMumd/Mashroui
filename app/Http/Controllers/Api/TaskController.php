@@ -17,7 +17,7 @@ class TaskController extends Controller
 {
     public function index(Team $team)
     {
-        Gate::authorize('viewAny', Task::class);
+        Gate::authorize('viewAny', [Task::class, $team]);
 
         return response()->json($team->tasks()->with('createdBy')->get());
     }
@@ -91,7 +91,7 @@ class TaskController extends Controller
 
     public function progress(Team $team, ProgressService $service)
     {
-        Gate::authorize('viewAny', Task::class);
+        Gate::authorize('viewAny', [Task::class, $team]);
 
         return response()->json($service->forTeam($team));
     }

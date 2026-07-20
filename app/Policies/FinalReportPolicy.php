@@ -5,21 +5,25 @@ namespace App\Policies;
 use App\Enums\AccessLevelEnum;
 use App\Enums\RoleEnum;
 use App\Models\FinalReport;
+use App\Models\Project;
 use App\Models\User;
 use App\Support\Rbac\AccessControl;
+use App\Support\Rbac\TeamMembership;
 
 class FinalReportPolicy
 {
-    public function __construct(private AccessControl $accessControl) {}
+    public function __construct(private AccessControl $accessControl, private TeamMembership $teamMembership) {}
 
-    public function viewAny(User $user): bool
+    public function viewAny(User $user, Project $project): bool
     {
-        return $this->accessControl->can($user, 'projects') !== AccessLevelEnum::Blocked;
+        return $this->accessControl->can($user, 'projects') !== AccessLevelEnum::Blocked
+            && $this->teamMembership->belongsTo($user, $project->team);
     }
 
     public function view(User $user, FinalReport $finalReport): bool
     {
-        return $this->accessControl->can($user, 'projects') !== AccessLevelEnum::Blocked;
+        return $this->accessControl->can($user, 'projects') !== AccessLevelEnum::Blocked
+            && $this->teamMembership->belongsTo($user, $finalReport->project->team);
     }
 
     public function create(User $user): bool

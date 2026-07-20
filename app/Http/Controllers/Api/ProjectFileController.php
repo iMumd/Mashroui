@@ -13,7 +13,7 @@ class ProjectFileController extends Controller
 {
     public function index(Project $project)
     {
-        Gate::authorize('viewAny', ProjectFile::class);
+        Gate::authorize('viewAny', [ProjectFile::class, $project]);
 
         return response()->json($project->files()->with('uploadedBy')->latest('uploaded_at')->get());
     }

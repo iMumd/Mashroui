@@ -13,7 +13,7 @@ class FinalReportController extends Controller
 {
     public function index(Project $project)
     {
-        Gate::authorize('viewAny', FinalReport::class);
+        Gate::authorize('viewAny', [FinalReport::class, $project]);
 
         return response()->json($project->finalReports()->with('uploadedBy')->latest()->get());
     }

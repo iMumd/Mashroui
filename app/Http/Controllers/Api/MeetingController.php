@@ -13,7 +13,7 @@ class MeetingController extends Controller
 {
     public function index(Team $team)
     {
-        Gate::authorize('viewAny', Meeting::class);
+        Gate::authorize('viewAny', [Meeting::class, $team]);
 
         return response()->json($team->meetings()->with('createdBy')->orderBy('scheduled_at')->get());
     }
