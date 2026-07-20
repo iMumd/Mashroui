@@ -25,11 +25,11 @@ use App\Http\Controllers\Api\TeamImportController;
 use App\Http\Controllers\Api\UserRestrictionController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/invite/{token}/accept', [InviteController::class, 'accept']);
-Route::get('/projects/featured', [ProjectController::class, 'featured']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/invite/{token}/accept', [InviteController::class, 'accept'])->middleware('throttle:invite-accept');
+Route::get('/projects/featured', [ProjectController::class, 'featured'])->middleware('throttle:public');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/me/change-password', [AuthController::class, 'changePassword']);
 

@@ -7,7 +7,10 @@ use App\Enums\RoleEnum;
 use App\Models\User;
 use App\Support\CurrentTerm;
 use App\Support\Rbac\AccessControl;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -32,5 +35,13 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manage-org-structure', fn (User $user) => false);
 
         Gate::define('manage-restrictions', fn (User $user) => $user->role === RoleEnum::Supervisor);
+
+        RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)->by(strtolower((string) $request->input('email')).'|'.$request->ip()));
+
+        RateLimiter::for('invite-accept', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+
+        RateLimiter::for('public', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
+
+        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
     }
 }
