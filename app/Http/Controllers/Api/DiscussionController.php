@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Discussion;
+use App\Rules\WhatsappNumber;
 use App\Services\DiscussionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -40,7 +41,7 @@ class DiscussionController extends Controller
             'discussion_date' => ['required', 'date'],
             'discussion_time' => ['required', 'date_format:H:i'],
             'committee' => ['required', 'string'],
-            'whatsapp' => ['nullable', 'string', 'max:20'],
+            'whatsapp' => ['nullable', 'string', new WhatsappNumber],
             'status' => ['nullable', Rule::in(['confirmed', 'pending'])],
         ]);
 
@@ -65,7 +66,7 @@ class DiscussionController extends Controller
             'discussion_date' => ['sometimes', 'required', 'date'],
             'discussion_time' => ['sometimes', 'required', 'date_format:H:i'],
             'committee' => ['sometimes', 'required', 'string'],
-            'whatsapp' => ['nullable', 'string', 'max:20'],
+            'whatsapp' => ['nullable', 'string', new WhatsappNumber],
             'status' => ['sometimes', Rule::in(['confirmed', 'pending'])],
         ]);
 

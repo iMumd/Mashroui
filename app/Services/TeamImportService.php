@@ -6,6 +6,7 @@ use App\Enums\RoleEnum;
 use App\Enums\UserStatusEnum;
 use App\Models\InviteLink;
 use App\Models\User;
+use App\Rules\WhatsappNumber;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -14,8 +15,6 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 class TeamImportService
 {
     private const MAX_ROWS = 200;
-
-    private const WHATSAPP_PATTERN = '/^(970|972)5\d{8}$/';
 
     public function parseRows(UploadedFile $file): array
     {
@@ -68,7 +67,7 @@ class TeamImportService
                 $errors[] = 'الرقم الجامعي مستخدم مسبقاً.';
             }
 
-            if (! preg_match(self::WHATSAPP_PATTERN, $row['whatsapp'])) {
+            if (! preg_match(WhatsappNumber::PATTERN, $row['whatsapp'])) {
                 $errors[] = 'رقم الواتساب يجب أن يبدأ بـ 970 أو 972 ويتبعه رقم محمول صحيح.';
             }
 
