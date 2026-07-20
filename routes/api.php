@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ProjectFileController;
 use App\Http\Controllers\Api\ProposalController;
 use App\Http\Controllers\Api\SpecializationController;
 use App\Http\Controllers\Api\TeamController;
+use App\Http\Controllers\Api\TeamExportController;
 use App\Http\Controllers\Api\TeamImportController;
 use App\Http\Controllers\Api\UserRestrictionController;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +36,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/restrictions/{restriction}', [UserRestrictionController::class, 'destroy']);
 
         Route::middleware('term')->group(function () {
+            Route::get('/teams/export', [TeamExportController::class, 'export']);
+
             Route::apiResource('teams', TeamController::class)->only(['index', 'store', 'show']);
 
             Route::post('/teams/import/preview', [TeamImportController::class, 'preview']);
