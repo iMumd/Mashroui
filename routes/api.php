@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\MessageDeliveryController;
 use App\Http\Controllers\Api\ProgressExportController;
+use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectFileController;
 use App\Http\Controllers\Api\ProposalController;
 use App\Http\Controllers\Api\SpecializationController;
@@ -26,6 +27,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/invite/{token}/accept', [InviteController::class, 'accept']);
+Route::get('/projects/featured', [ProjectController::class, 'featured']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
