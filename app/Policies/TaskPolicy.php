@@ -43,4 +43,10 @@ class TaskPolicy
     {
         return $this->update($user, $task);
     }
+
+    public function changeStatus(User $user, Task $task): bool
+    {
+        return $this->accessControl->can($user, 'tasks') === AccessLevelEnum::Full
+            && $user->role === RoleEnum::TeamLeader;
+    }
 }
