@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Discussion;
 use App\Services\DiscussionService;
 use Illuminate\Http\Request;
@@ -73,9 +74,17 @@ class DiscussionController extends Controller
         return response()->json($discussion);
     }
 
-    public function destroy(Discussion $discussion)
+    public function destroy(Request $request, Discussion $discussion)
     {
         Gate::authorize('delete', $discussion);
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'delete',
+            'entity' => 'discussion',
+            'entity_id' => $discussion->id,
+            'meta' => ['project_id' => $discussion->project_id, 'place' => $discussion->place],
+        ]);
 
         $discussion->delete();
 

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\ProjectStatusEnum;
 use App\Enums\ProposalStatusEnum;
 use App\Events\ProposalReviewed;
+use App\Models\AuditLog;
 use App\Models\Project;
 use App\Models\Proposal;
 use App\Models\User;
@@ -101,6 +102,14 @@ class ProposalService
         ]);
 
         $proposal = $proposal->fresh();
+
+        AuditLog::create([
+            'user_id' => $reviewer->id,
+            'action' => 'reject',
+            'entity' => 'proposal',
+            'entity_id' => $proposal->id,
+            'meta' => ['reason' => $reason],
+        ]);
 
         ProposalReviewed::dispatch($proposal);
 

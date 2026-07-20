@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -43,9 +44,17 @@ class DepartmentController extends Controller
         return response()->json($department);
     }
 
-    public function destroy(Department $department)
+    public function destroy(Request $request, Department $department)
     {
         Gate::authorize('manage-org-structure');
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'delete',
+            'entity' => 'department',
+            'entity_id' => $department->id,
+            'meta' => ['name' => $department->name],
+        ]);
 
         $department->delete();
 

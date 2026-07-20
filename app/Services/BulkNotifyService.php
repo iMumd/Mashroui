@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\DeliveryStatusEnum;
 use App\Enums\NotificationChannelEnum;
 use App\Jobs\SendCredentialsMessage;
+use App\Models\AuditLog;
 use App\Models\InviteLink;
 use App\Models\MessageDelivery;
 use App\Models\User;
@@ -42,7 +43,7 @@ class BulkNotifyService
         ];
     }
 
-    public function send(array $userIds, NotificationChannelEnum $channel, string $context = 'credentials'): array
+    public function send(array $userIds, NotificationChannelEnum $channel, User $actor, string $context = 'credentials'): array
     {
         $users = User::whereIn('id', $userIds)->get();
         $dispatched = [];
@@ -67,6 +68,14 @@ class BulkNotifyService
 
             $dispatched[] = $delivery->id;
         }
+
+        AuditLog::create([
+            'user_id' => $actor->id,
+            'action' => 'bulk_send',
+            'entity' => 'message_delivery',
+            'entity_id' => null,
+            'meta' => ['channel' => $channel->value, 'context' => $context, 'dispatched' => $dispatched, 'skipped' => $skipped],
+        ]);
 
         return ['dispatched' => $dispatched, 'skipped' => $skipped];
     }

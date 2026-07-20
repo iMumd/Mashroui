@@ -37,7 +37,7 @@ class BulkNotifyController extends Controller
         ]);
 
         return response()->json(
-            $service->send($data['user_ids'], NotificationChannelEnum::from($data['channel']))
+            $service->send($data['user_ids'], NotificationChannelEnum::from($data['channel']), $request->user())
         );
     }
 }

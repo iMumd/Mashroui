@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\DegreeEnum;
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Specialization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -49,9 +50,17 @@ class SpecializationController extends Controller
         return response()->json($specialization);
     }
 
-    public function destroy(Specialization $specialization)
+    public function destroy(Request $request, Specialization $specialization)
     {
         Gate::authorize('manage-org-structure');
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'delete',
+            'entity' => 'specialization',
+            'entity_id' => $specialization->id,
+            'meta' => ['name' => $specialization->name],
+        ]);
 
         $specialization->delete();
 

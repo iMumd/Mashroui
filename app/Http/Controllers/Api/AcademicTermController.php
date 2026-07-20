@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicTerm;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -53,9 +54,17 @@ class AcademicTermController extends Controller
         return response()->json($academicTerm);
     }
 
-    public function destroy(AcademicTerm $academicTerm)
+    public function destroy(Request $request, AcademicTerm $academicTerm)
     {
         Gate::authorize('manage-org-structure');
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'delete',
+            'entity' => 'academic_term',
+            'entity_id' => $academicTerm->id,
+            'meta' => ['name' => $academicTerm->name],
+        ]);
 
         $academicTerm->delete();
 

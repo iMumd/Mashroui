@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\TaskStatusEnum;
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Task;
 use App\Models\Team;
 use App\Services\ProgressService;
@@ -58,9 +59,17 @@ class TaskController extends Controller
         return response()->json($task);
     }
 
-    public function destroy(Task $task)
+    public function destroy(Request $request, Task $task)
     {
         Gate::authorize('delete', $task);
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'delete',
+            'entity' => 'task',
+            'entity_id' => $task->id,
+            'meta' => ['team_id' => $task->team_id, 'title' => $task->title],
+        ]);
 
         $task->delete();
 
