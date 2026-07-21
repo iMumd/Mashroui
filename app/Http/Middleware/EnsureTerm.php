@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\AcademicTerm;
 use App\Support\CurrentTerm;
 use Closure;
 use Illuminate\Http\Request;
@@ -18,7 +19,9 @@ class EnsureTerm
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $termId = $request->integer('term_id') ?: $request->user()?->term_id;
+        $termId = $request->integer('term_id')
+            ?: $request->user()?->term_id
+            ?: AcademicTerm::where('is_current', true)->value('id');
 
         $this->currentTerm->set($termId);
 
