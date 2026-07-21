@@ -79,7 +79,11 @@ class ProposalService
                 'rejection_reason' => null,
             ]);
 
-            $proposal->project()->update(['status' => ProjectStatusEnum::InProgress]);
+            $proposal->project()->update([
+                'status' => ProjectStatusEnum::InProgress,
+                'name' => $proposal->name,
+                'description' => $proposal->description,
+            ]);
 
             $proposal = $proposal->fresh();
 
