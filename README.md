@@ -1,58 +1,54 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Mashroui
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+API backend for managing graduation projects at a university department — teams, proposals, tasks, meetings, final reports, and the review workflow between students, supervisors, and the committee.
 
-## About Laravel
+Laravel 13, API-only, Sanctum for auth, MySQL.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- PHP 8.3, Laravel 13
+- Sanctum (token auth)
+- MySQL
+- Queue driver: database (used for WhatsApp/email dispatch jobs)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Setup
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env
+php artisan key:generate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Create a MySQL database named `mashroui` (or change `DB_DATABASE` in `.env`), then:
 
-## Contributing
+```bash
+php artisan migrate --seed
+php artisan serve
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+`--seed` creates the initial super admin and reference data (departments, specializations, academic term). Check `database/seeders` for the default login.
 
-## Code of Conduct
+## Roles
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Five roles, checked via `RoleEnum`: `super_admin`, `committee`, `supervisor`, `team_leader`, `student`. Permissions per role/module (projects, proposals, tasks, meetings) are enforced through `AccessControl` and Laravel Policies — super admin bypasses everything via `Gate::before`.
 
-## Security Vulnerabilities
+## How the project is organized
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- A project happens within an **academic term**. Most data (teams, proposals, discussions) is scoped to the currently active term via a global scope, so past terms don't leak into current views.
+- A **team** has a leader (student) and a supervisor. Team members submit a **proposal** for their project, which a supervisor/committee approves or rejects.
+- Once approved, work is tracked with **tasks**, **meetings**, task **notes** and **files**, and a **final report** at the end.
+- Every sensitive action (approvals, rejections, deletions, bulk notifications) is written to an **audit log**.
 
-## License
+## Notifications
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Credentials and announcements go out over email or WhatsApp. WhatsApp isn't the paid Business API — the system generates a `wa.me` link per recipient, and a staff member sends it manually. Delivery status is tracked in `message_deliveries`.
+
+## Auth
+
+Token-based via Sanctum. Login is rate-limited (5 attempts/minute per email+IP). New users are invited by email/link and set their own password on first login — there's a `force-password-change` middleware gate that blocks API access until that's done.
+
+## Notes for contributors
+
+- Commits are in English even though planning docs and conversations around this project are in Arabic.
+- File uploads (project files, task files) are restricted to a document type whitelist and stored under randomized paths — never trust the original filename.
+- Student contact info (email, phone) is only visible to their own team and supervisor, not to every authenticated user — see `App\Support\Rbac\StudentDataVisibility`.
