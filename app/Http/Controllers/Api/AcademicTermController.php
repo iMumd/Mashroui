@@ -58,6 +58,12 @@ class AcademicTermController extends Controller
     {
         Gate::authorize('manage-org-structure');
 
+        abort_if(
+            $academicTerm->teams()->exists() || $academicTerm->projects()->exists() || $academicTerm->discussions()->exists(),
+            422,
+            'لا يمكن حذف الفصل الدراسي لوجود فرق أو مشاريع أو مناقشات مرتبطة به.'
+        );
+
         AuditLog::create([
             'user_id' => $request->user()->id,
             'action' => 'delete',

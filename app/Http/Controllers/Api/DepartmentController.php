@@ -48,6 +48,8 @@ class DepartmentController extends Controller
     {
         Gate::authorize('manage-org-structure');
 
+        abort_if($department->specializations()->exists(), 422, 'لا يمكن حذف القسم لوجود تخصصات مرتبطة به.');
+
         AuditLog::create([
             'user_id' => $request->user()->id,
             'action' => 'delete',

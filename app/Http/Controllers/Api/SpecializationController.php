@@ -54,6 +54,12 @@ class SpecializationController extends Controller
     {
         Gate::authorize('manage-org-structure');
 
+        abort_if(
+            $specialization->teams()->exists() || $specialization->projects()->exists(),
+            422,
+            'لا يمكن حذف التخصص لوجود فرق أو مشاريع مرتبطة به.'
+        );
+
         AuditLog::create([
             'user_id' => $request->user()->id,
             'action' => 'delete',
