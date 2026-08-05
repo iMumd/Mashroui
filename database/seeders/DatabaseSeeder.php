@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             SpecializationSeeder::class,
             AcademicTermSeeder::class,
             SuperAdminSeeder::class,
+            TestUsersSeeder::class,
         ]);
     }
 }
