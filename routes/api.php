@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectFileController;
 use App\Http\Controllers\Api\ProposalController;
 use App\Http\Controllers\Api\SpecializationController;
+use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TaskFileController;
 use App\Http\Controllers\Api\TaskNoteController;
@@ -28,6 +29,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 Route::post('/invite/{token}/accept', [InviteController::class, 'accept'])->middleware('throttle:invite-accept');
 Route::get('/projects/featured', [ProjectController::class, 'featured'])->middleware('throttle:public');
+Route::get('/stats', [StatsController::class, 'index'])->middleware('throttle:public');
 
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
