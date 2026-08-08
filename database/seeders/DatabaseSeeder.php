@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             AcademicTermSeeder::class,
             SuperAdminSeeder::class,
             TestUsersSeeder::class,
+            FeaturedProjectSeeder::class,
         ]);
     }
 }
