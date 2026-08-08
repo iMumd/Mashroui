@@ -32,6 +32,9 @@ Route::post('/invite/{token}/accept', [InviteController::class, 'accept'])->midd
 Route::get('/projects/featured', [ProjectController::class, 'featured'])->middleware('throttle:public');
 Route::get('/stats', [StatsController::class, 'index'])->middleware('throttle:public');
 
+Route::get('/committee/dashboard-stats', [CommitteeDashboardController::class, 'index'])
+    ->middleware(['auth:sanctum', 'throttle:api', 'term']);
+
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/me/change-password', [AuthController::class, 'changePassword']);
@@ -58,8 +61,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/ai/projects-source', [AiProjectSourceController::class, 'index']);
 
         Route::middleware('term')->group(function () {
-            Route::get('/committee/dashboard', [CommitteeDashboardController::class, 'index']);
-
             Route::get('/teams/export', [TeamExportController::class, 'export']);
 
             Route::apiResource('teams', TeamController::class)->only(['index', 'store', 'show']);
