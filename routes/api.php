@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AcademicTermController;
 use App\Http\Controllers\Api\AiProjectSourceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BulkNotifyController;
+use App\Http\Controllers\Api\CommitteeDashboardController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DiscussionController;
 use App\Http\Controllers\Api\DiscussionExportController;
@@ -57,6 +58,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/ai/projects-source', [AiProjectSourceController::class, 'index']);
 
         Route::middleware('term')->group(function () {
+            Route::get('/committee/dashboard', [CommitteeDashboardController::class, 'index']);
+
             Route::get('/teams/export', [TeamExportController::class, 'export']);
 
             Route::apiResource('teams', TeamController::class)->only(['index', 'store', 'show']);
