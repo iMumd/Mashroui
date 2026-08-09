@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TeamResource;
+use App\Models\AuditLog;
 use App\Models\Team;
 use App\Services\TeamService;
 use Illuminate\Http\Request;
@@ -41,5 +42,37 @@ class TeamController extends Controller
     public function show(Team $team)
     {
         return new TeamResource($team->load('members.student', 'supervisor', 'leader', 'project'));
+    }
+
+    public function update(Request $request, Team $team)
+    {
+        Gate::authorize('update', $team);
+
+        $data = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:150'],
+            'supervisor_id' => ['sometimes', 'required', 'exists:users,id'],
+            'specialization_id' => ['sometimes', 'required', 'exists:specializations,id'],
+        ]);
+
+        $team->update($data);
+
+        return new TeamResource($team->load('members.student', 'supervisor', 'leader', 'project'));
+    }
+
+    public function destroy(Request $request, Team $team)
+    {
+        Gate::authorize('delete', $team);
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'delete',
+            'entity' => 'team',
+            'entity_id' => $team->id,
+            'meta' => ['name' => $team->name],
+        ]);
+
+        $team->delete();
+
+        return response()->json(null, 204);
     }
 }

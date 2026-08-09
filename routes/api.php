@@ -70,7 +70,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::middleware('term')->group(function () {
             Route::get('/teams/export', [TeamExportController::class, 'export']);
 
-            Route::apiResource('teams', TeamController::class)->only(['index', 'store', 'show']);
+            Route::apiResource('teams', TeamController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 
             Route::post('/teams/import/preview', [TeamImportController::class, 'preview']);
             Route::post('/teams/import/confirm', [TeamImportController::class, 'confirm']);
