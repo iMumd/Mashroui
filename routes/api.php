@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\FinalReportController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\MessageDeliveryController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProgressExportController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectFileController;
@@ -59,6 +60,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
         Route::get('/message-deliveries', [MessageDeliveryController::class, 'index']);
         Route::post('/message-deliveries/{delivery}/retry', [MessageDeliveryController::class, 'retry']);
+
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/{notification}/read', [NotificationController::class, 'read']);
+        Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
 
         Route::get('/ai/projects-source', [AiProjectSourceController::class, 'index']);
 
