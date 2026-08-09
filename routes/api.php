@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\TaskNoteController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\TeamExportController;
 use App\Http\Controllers\Api\TeamImportController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserRestrictionController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,6 +43,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::middleware('force-password-change')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::get('/me/abilities', [AuthController::class, 'abilities']);
+        Route::post('/users', [UserController::class, 'store']);
         Route::post('/users/{user}/invite', [InviteController::class, 'invite']);
 
         Route::apiResource('departments', DepartmentController::class);
