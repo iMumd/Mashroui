@@ -76,6 +76,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::post('/proposals/{proposal}/approve', [ProposalController::class, 'approve']);
             Route::post('/proposals/{proposal}/reject', [ProposalController::class, 'reject']);
 
+            Route::patch('/projects/{project}', [ProjectController::class, 'update']);
+            Route::post('/projects/{project}/complete', [ProjectController::class, 'complete']);
+
             Route::get('/projects/{project}/files', [ProjectFileController::class, 'index']);
             Route::post('/projects/{project}/files', [ProjectFileController::class, 'store']);
 
