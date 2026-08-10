@@ -77,6 +77,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
             Route::post('/proposals', [ProposalController::class, 'store']);
             Route::get('/proposals/{proposal}', [ProposalController::class, 'show']);
+            Route::get('/proposals/{proposal}/download', [ProposalController::class, 'download']);
             Route::put('/proposals/{proposal}', [ProposalController::class, 'update']);
             Route::post('/proposals/{proposal}/approve', [ProposalController::class, 'approve']);
             Route::post('/proposals/{proposal}/reject', [ProposalController::class, 'reject']);
@@ -89,6 +90,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
             Route::get('/projects/{project}/final-reports', [FinalReportController::class, 'index']);
             Route::post('/projects/{project}/final-reports', [FinalReportController::class, 'store']);
+            Route::get('/final-reports/{finalReport}/download', [FinalReportController::class, 'download']);
 
             Route::get('/teams/{team}/meetings', [MeetingController::class, 'index']);
             Route::post('/teams/{team}/meetings', [MeetingController::class, 'store']);

@@ -8,6 +8,7 @@ use App\Models\Proposal;
 use App\Services\ProposalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 
 class ProposalController extends Controller
 {
@@ -16,6 +17,13 @@ class ProposalController extends Controller
         Gate::authorize('view', $proposal);
 
         return new ProposalResource($proposal->load('project', 'submittedBy', 'reviewedBy'));
+    }
+
+    public function download(Proposal $proposal)
+    {
+        Gate::authorize('view', $proposal);
+
+        return Storage::download($proposal->pdf_path, "{$proposal->name}.pdf");
     }
 
     public function store(Request $request, ProposalService $service)

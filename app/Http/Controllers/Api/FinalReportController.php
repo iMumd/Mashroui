@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Services\FinalReportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 
 class FinalReportController extends Controller
 {
@@ -17,6 +18,13 @@ class FinalReportController extends Controller
         Gate::authorize('viewAny', [FinalReport::class, $project]);
 
         return FinalReportResource::collection($project->finalReports()->with('uploadedBy')->latest()->get());
+    }
+
+    public function download(FinalReport $finalReport)
+    {
+        Gate::authorize('view', $finalReport);
+
+        return Storage::download($finalReport->pdf_path, 'final-report.pdf');
     }
 
     public function store(Request $request, Project $project, FinalReportService $service)
