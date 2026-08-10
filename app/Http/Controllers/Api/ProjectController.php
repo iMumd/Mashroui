@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\ProjectStatusEnum;
+use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\Scopes\TermScope;
@@ -12,6 +13,35 @@ use Illuminate\Validation\ValidationException;
 
 class ProjectController extends Controller
 {
+    // GET /projects/archive — سجلّ المشاريع المكتملة عبر كل الفصول الدراسية (لجنة: الكل، مشرف: مشاريعه فقط)
+    public function archive(Request $request)
+    {
+        Gate::authorize('viewAny', Project::class);
+
+        $query = Project::withoutGlobalScope(TermScope::class)
+            ->with(['team:id,name', 'department:id,name', 'specialization:id,name', 'proposal', 'finalReports'])
+            ->where('status', ProjectStatusEnum::Completed)
+            ->orderByDesc('completed_at');
+
+        if ($request->user()->role === RoleEnum::Supervisor) {
+            $query->where('supervisor_id', $request->user()->id);
+        }
+
+        return response()->json($query->get());
+    }
+
+    // GET /projects/{id} — مقيّد بنفس النطاق الزمني الكامل (بما فيه فصول سابقة) بعكس الربط الضمني الافتراضي
+    public function show(Request $request, int $project)
+    {
+        $item = Project::withoutGlobalScope(TermScope::class)
+            ->with(['team:id,name', 'department:id,name', 'specialization:id,name', 'proposal', 'finalReports'])
+            ->findOrFail($project);
+
+        Gate::authorize('view', $item);
+
+        return response()->json($item);
+    }
+
     public function featured()
     {
         $projects = Project::withoutGlobalScope(TermScope::class)
