@@ -44,7 +44,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::middleware('force-password-change')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::get('/me/abilities', [AuthController::class, 'abilities']);
+        Route::get('/users', [UserController::class, 'index']);
         Route::post('/users', [UserController::class, 'store']);
+        Route::patch('/users/{user}', [UserController::class, 'update']);
+        Route::patch('/users/{user}/status', [UserController::class, 'updateStatus']);
         Route::post('/users/{user}/invite', [InviteController::class, 'invite']);
 
         Route::apiResource('departments', DepartmentController::class);
