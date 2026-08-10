@@ -25,6 +25,7 @@ class FinalReportController extends Controller
 
         $data = $request->validate([
             'file' => ['required', 'file', 'mimes:pdf', 'max:20480'],
+            'video_url' => ['nullable', 'url', 'max:255'],
         ]);
 
         $data['project_id'] = $project->id;

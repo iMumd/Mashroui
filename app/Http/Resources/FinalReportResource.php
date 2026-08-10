@@ -13,6 +13,7 @@ class FinalReportResource extends JsonResource
             'id' => $this->id,
             'project_id' => $this->project_id,
             'pdf_path' => $this->pdf_path,
+            'video_url' => $this->video_url,
             'uploaded_by' => $this->uploadedBy ? new UserResource($this->uploadedBy) : null,
             'created_at' => $this->created_at,
         ];

@@ -15,7 +15,7 @@ class TeamController extends Controller
 {
     public function index()
     {
-        return TeamResource::collection(Team::with('members.student', 'supervisor', 'leader', 'project')->get());
+        return TeamResource::collection(Team::with('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports')->get());
     }
 
     public function store(Request $request, TeamService $teamService)
@@ -41,7 +41,7 @@ class TeamController extends Controller
 
     public function show(Team $team)
     {
-        return new TeamResource($team->load('members.student', 'supervisor', 'leader', 'project'));
+        return new TeamResource($team->load('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports'));
     }
 
     public function update(Request $request, Team $team)
@@ -56,7 +56,7 @@ class TeamController extends Controller
 
         $team->update($data);
 
-        return new TeamResource($team->load('members.student', 'supervisor', 'leader', 'project'));
+        return new TeamResource($team->load('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports'));
     }
 
     public function destroy(Request $request, Team $team)

@@ -28,6 +28,7 @@ class FinalReportService
         $finalReport = FinalReport::create([
             'project_id' => $project->id,
             'pdf_path' => Storage::putFile('final_reports', $file),
+            'video_url' => $data['video_url'] ?? null,
             'uploaded_by' => $leader->id,
         ]);
 
