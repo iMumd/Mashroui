@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MeetingResource;
+use App\Models\AuditLog;
 use App\Models\Meeting;
 use App\Models\Team;
 use App\Services\MeetingService;
@@ -42,5 +43,22 @@ class MeetingController extends Controller
         Gate::authorize('view', $meeting);
 
         return new MeetingResource($meeting->load('createdBy', 'team'));
+    }
+
+    public function destroy(Request $request, Meeting $meeting)
+    {
+        Gate::authorize('delete', $meeting);
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'delete',
+            'entity' => 'meeting',
+            'entity_id' => $meeting->id,
+            'meta' => ['team_id' => $meeting->team_id, 'title' => $meeting->title],
+        ]);
+
+        $meeting->delete();
+
+        return response()->json(null, 204);
     }
 }

@@ -95,6 +95,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::get('/teams/{team}/meetings', [MeetingController::class, 'index']);
             Route::post('/teams/{team}/meetings', [MeetingController::class, 'store']);
             Route::get('/meetings/{meeting}', [MeetingController::class, 'show']);
+            Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy']);
 
             Route::get('/progress/export', [ProgressExportController::class, 'export']);
 
