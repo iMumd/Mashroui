@@ -37,7 +37,7 @@ class TeamController extends Controller
 
         $team = $teamService->create($data);
 
-        return response()->json($team, 201);
+        return (new TeamResource($team->load('supervisor', 'leader')))->response()->setStatusCode(201);
     }
 
     public function show(Team $team)
