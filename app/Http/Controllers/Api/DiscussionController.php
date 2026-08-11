@@ -17,7 +17,7 @@ class DiscussionController extends Controller
     {
         Gate::authorize('viewAny', Discussion::class);
 
-        $query = Discussion::with('project.department', 'project.specialization', 'supervisor');
+        $query = Discussion::with('project.team', 'project.department', 'project.specialization', 'supervisor');
 
         if ($request->filled('department_id')) {
             $query->whereHas('project', fn ($q) => $q->where('department_id', $request->integer('department_id')));
@@ -47,14 +47,14 @@ class DiscussionController extends Controller
 
         $discussion = $service->create($data);
 
-        return response()->json($discussion, 201);
+        return response()->json($discussion->load('project.team', 'project.department', 'project.specialization', 'supervisor'), 201);
     }
 
     public function show(Discussion $discussion)
     {
         Gate::authorize('view', $discussion);
 
-        return response()->json($discussion->load('project.department', 'project.specialization', 'supervisor'));
+        return response()->json($discussion->load('project.team', 'project.department', 'project.specialization', 'supervisor'));
     }
 
     public function update(Request $request, Discussion $discussion, DiscussionService $service)
@@ -72,7 +72,7 @@ class DiscussionController extends Controller
 
         $discussion = $service->update($discussion, $data);
 
-        return response()->json($discussion);
+        return response()->json($discussion->load('project.team', 'project.department', 'project.specialization', 'supervisor'));
     }
 
     public function destroy(Request $request, Discussion $discussion)
