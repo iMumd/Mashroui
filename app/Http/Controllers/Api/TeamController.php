@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\TeamResource;
 use App\Models\AuditLog;
 use App\Models\Team;
+use App\Models\TeamMember;
 use App\Services\TeamService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -74,5 +75,40 @@ class TeamController extends Controller
         $team->delete();
 
         return response()->json(null, 204);
+    }
+
+    public function addMember(Request $request, Team $team, TeamService $teamService)
+    {
+        Gate::authorize('update', $team);
+
+        $data = $request->validate([
+            'student_id' => ['required', Rule::exists('users', 'id')->where('role', 'student')],
+        ]);
+
+        $team = $teamService->addMember($team, $data['student_id']);
+
+        return new TeamResource($team);
+    }
+
+    public function removeMember(Request $request, Team $team, TeamMember $member, TeamService $teamService)
+    {
+        Gate::authorize('update', $team);
+
+        $team = $teamService->removeMember($team, $member);
+
+        return new TeamResource($team);
+    }
+
+    public function updateLeader(Request $request, Team $team, TeamService $teamService)
+    {
+        Gate::authorize('update', $team);
+
+        $data = $request->validate([
+            'student_id' => ['required', 'integer'],
+        ]);
+
+        $team = $teamService->updateLeader($team, $data['student_id']);
+
+        return new TeamResource($team);
     }
 }

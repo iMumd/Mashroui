@@ -67,4 +67,73 @@ class TeamService
             return $team->load('members.student', 'project');
         });
     }
+
+    public function addMember(Team $team, int $studentId): Team
+    {
+        $termId = $this->currentTerm->get();
+
+        if ($team->members()->count() >= 4) {
+            throw ValidationException::withMessages(['student_id' => 'الفريق مكتمل بالحد الأقصى (4 أعضاء).']);
+        }
+
+        $conflict = TeamMember::where('student_id', $studentId)
+            ->whereHas('team', fn ($query) => $query->where('term_id', $termId))
+            ->exists();
+
+        if ($conflict) {
+            throw ValidationException::withMessages(['student_id' => 'الطالب منضم لفريق آخر بنفس الفصل.']);
+        }
+
+        TeamMember::create([
+            'team_id' => $team->id,
+            'student_id' => $studentId,
+            'is_leader' => false,
+        ]);
+
+        return $team->load('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports');
+    }
+
+    public function removeMember(Team $team, TeamMember $member): Team
+    {
+        if ($member->team_id !== $team->id) {
+            throw ValidationException::withMessages(['member' => 'العضو لا ينتمي لهذا الفريق.']);
+        }
+
+        if ($member->is_leader) {
+            throw ValidationException::withMessages(['member' => 'لا يمكن حذف قائد الفريق — عيّني قائدًا آخر أولاً.']);
+        }
+
+        if ($team->members()->count() <= 1) {
+            throw ValidationException::withMessages(['member' => 'لا يمكن ترك الفريق بدون أعضاء.']);
+        }
+
+        $member->delete();
+
+        return $team->load('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports');
+    }
+
+    public function updateLeader(Team $team, int $studentId): Team
+    {
+        $member = $team->members()->where('student_id', $studentId)->first();
+
+        if (! $member) {
+            throw ValidationException::withMessages(['student_id' => 'العضو لا ينتمي لهذا الفريق.']);
+        }
+
+        return DB::transaction(function () use ($team, $member, $studentId) {
+            $previousLeaderId = $team->leader_id;
+
+            $team->members()->update(['is_leader' => false]);
+            $member->update(['is_leader' => true]);
+            $team->update(['leader_id' => $studentId]);
+
+            User::whereKey($studentId)->update(['role' => RoleEnum::TeamLeader]);
+
+            if ($previousLeaderId && $previousLeaderId !== $studentId) {
+                User::whereKey($previousLeaderId)->update(['role' => RoleEnum::Student]);
+            }
+
+            return $team->load('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports');
+        });
+    }
 }

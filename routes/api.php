@@ -45,7 +45,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::middleware('force-password-change')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::get('/me/abilities', [AuthController::class, 'abilities']);
-        Route::get('/users', [UserController::class, 'index']);
         Route::post('/users', [UserController::class, 'store']);
         Route::patch('/users/{user}', [UserController::class, 'update']);
         Route::patch('/users/{user}/status', [UserController::class, 'updateStatus']);
@@ -72,9 +71,15 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/ai/projects-source', [AiProjectSourceController::class, 'index']);
 
         Route::middleware('term')->group(function () {
+            Route::get('/users', [UserController::class, 'index']);
+
             Route::get('/teams/export', [TeamExportController::class, 'export']);
 
             Route::apiResource('teams', TeamController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+
+            Route::post('/teams/{team}/members', [TeamController::class, 'addMember']);
+            Route::delete('/teams/{team}/members/{member}', [TeamController::class, 'removeMember']);
+            Route::patch('/teams/{team}/leader', [TeamController::class, 'updateLeader']);
 
             Route::post('/teams/import/preview', [TeamImportController::class, 'preview']);
             Route::post('/teams/import/confirm', [TeamImportController::class, 'confirm']);

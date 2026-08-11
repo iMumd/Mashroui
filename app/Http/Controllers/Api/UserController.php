@@ -7,8 +7,10 @@ use App\Enums\UserStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\InviteLink;
+use App\Models\TeamMember;
 use App\Models\User;
 use App\Rules\WhatsappNumber;
+use App\Support\CurrentTerm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -16,15 +18,32 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, CurrentTerm $currentTerm)
     {
-        abort_unless($request->user()->role === RoleEnum::SuperAdmin, 403);
+        $actor = $request->user();
+
+        if ($actor->role === RoleEnum::SuperAdmin) {
+            $allowedRoles = [RoleEnum::Supervisor->value, RoleEnum::Committee->value];
+        } elseif ($actor->role === RoleEnum::Committee) {
+            $allowedRoles = [RoleEnum::Student->value];
+        } else {
+            abort(403);
+        }
 
         $data = $request->validate([
-            'role' => ['required', Rule::in([RoleEnum::Supervisor->value, RoleEnum::Committee->value])],
+            'role' => ['required', Rule::in($allowedRoles)],
+            'unassigned' => ['sometimes', 'boolean'],
         ]);
 
-        $users = User::where('role', $data['role'])->orderBy('name')->get();
+        $query = User::where('role', $data['role']);
+
+        if ($data['role'] === RoleEnum::Student->value && $request->boolean('unassigned')) {
+            $termId = $currentTerm->get();
+            $assignedIds = TeamMember::whereHas('team', fn ($q) => $q->where('term_id', $termId))->pluck('student_id');
+            $query->whereNotIn('id', $assignedIds);
+        }
+
+        $users = $query->orderBy('name')->get();
 
         return UserResource::collection($users);
     }
