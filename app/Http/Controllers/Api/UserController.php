@@ -31,13 +31,13 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
-        abort_unless($request->user()->role === RoleEnum::SuperAdmin, 403);
-        abort_unless(in_array($user->role, [RoleEnum::Supervisor, RoleEnum::Committee], true), 404);
+        $this->authorizeManageTarget($request, $user);
 
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:150'],
             'whatsapp' => ['nullable', new WhatsappNumber],
             'employee_number' => ['nullable', 'string', 'max:30'],
+            'university_number' => ['nullable', 'string', 'max:30'],
             'specialization_id' => ['nullable', 'exists:specializations,id'],
         ]);
 
@@ -48,8 +48,7 @@ class UserController extends Controller
 
     public function updateStatus(Request $request, User $user)
     {
-        abort_unless($request->user()->role === RoleEnum::SuperAdmin, 403);
-        abort_unless(in_array($user->role, [RoleEnum::Supervisor, RoleEnum::Committee], true), 404);
+        $this->authorizeManageTarget($request, $user);
 
         $data = $request->validate([
             'status' => ['required', Rule::in([UserStatusEnum::Active->value, UserStatusEnum::Restricted->value])],
@@ -58,6 +57,29 @@ class UserController extends Controller
         $user->update(['status' => $data['status']]);
 
         return new UserResource($user);
+    }
+
+    /**
+     * سوبر أدمن يدير حسابات المشرفين ولجنة الإشراف، ولجنة الإشراف تدير حسابات الطلاب والمشرفين
+     * (تواصل/إيقاف فقط — كل دور محصور بالأدوار اللي فعليًا يشرف عليها).
+     */
+    private function authorizeManageTarget(Request $request, User $user): void
+    {
+        $actor = $request->user();
+
+        if ($actor->role === RoleEnum::SuperAdmin) {
+            abort_unless(in_array($user->role, [RoleEnum::Supervisor, RoleEnum::Committee], true), 404);
+
+            return;
+        }
+
+        if ($actor->role === RoleEnum::Committee) {
+            abort_unless(in_array($user->role, [RoleEnum::Student, RoleEnum::TeamLeader, RoleEnum::Supervisor], true), 404);
+
+            return;
+        }
+
+        abort(403);
     }
 
     public function store(Request $request)
