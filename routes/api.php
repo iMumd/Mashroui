@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\MessageDeliveryController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ProgressController;
 use App\Http\Controllers\Api\ProgressExportController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectFileController;
@@ -102,6 +103,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::get('/meetings/{meeting}', [MeetingController::class, 'show']);
             Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy']);
 
+            Route::get('/progress', [ProgressController::class, 'index']);
             Route::get('/progress/export', [ProgressExportController::class, 'export']);
 
             Route::get('/teams/{team}/progress', [TaskController::class, 'progress']);

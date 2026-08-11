@@ -2,16 +2,16 @@
 
 namespace App\Services;
 
-use App\Models\Team;
+use App\Models\User;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 
 class ProgressExportService
 {
     public function __construct(private ProgressService $progressService) {}
 
-    public function build(): Spreadsheet
+    public function build(User $user): Spreadsheet
     {
-        $teams = Team::with('supervisor', 'specialization', 'project')->get();
+        $rows = $this->progressService->overview($user);
 
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
@@ -22,8 +22,9 @@ class ProgressExportService
 
         $row = 2;
 
-        foreach ($teams as $team) {
-            $progress = $this->progressService->forTeam($team);
+        foreach ($rows as $entry) {
+            $team = $entry['team'];
+            $progress = $entry['progress'];
 
             $sheet->fromArray([
                 $team->name,

@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
-use App\Models\Task;
 use App\Services\ProgressExportService;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ProgressExportController extends Controller
 {
-    public function export(ProgressExportService $service)
+    public function export(Request $request, ProgressExportService $service)
     {
-        Gate::authorize('viewAny', Task::class);
+        abort_unless(in_array($request->user()->role, [RoleEnum::Committee, RoleEnum::Supervisor], true), 403);
 
-        $spreadsheet = $service->build();
+        $spreadsheet = $service->build($request->user());
 
         return response()->streamDownload(function () use ($spreadsheet) {
             (new Xlsx($spreadsheet))->save('php://output');
