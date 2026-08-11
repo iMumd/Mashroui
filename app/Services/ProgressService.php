@@ -25,7 +25,7 @@ class ProgressService
     /** نظرة عامة على تقدّم كل الفرق — لجنة: الكل، مشرف: فرقه فقط */
     public function overview(User $user): Collection
     {
-        $query = Team::with('supervisor', 'specialization', 'project');
+        $query = Team::with('supervisor', 'specialization.department', 'project.department', 'members.student');
 
         if ($user->role === RoleEnum::Supervisor) {
             $query->where('supervisor_id', $user->id);
