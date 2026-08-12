@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AcademicTermController;
 use App\Http\Controllers\Api\AiProjectSourceController;
+use App\Http\Controllers\Api\AssistantController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BulkNotifyController;
 use App\Http\Controllers\Api\CommitteeDashboardController;
@@ -69,6 +70,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
 
         Route::get('/ai/projects-source', [AiProjectSourceController::class, 'index']);
+
+        Route::post('/assistant/chat', [AssistantController::class, 'chat'])->middleware('throttle:assistant');
 
         Route::middleware('term')->group(function () {
             Route::get('/users', [UserController::class, 'index']);

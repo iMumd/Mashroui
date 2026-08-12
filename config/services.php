@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'fikra' => [
+        'base_url' => env('FIKRA_API_URL', 'https://frisbee-pug-zealous.ngrok-free.dev'),
+        'model' => env('FIKRA_MODEL', 'fikra'),
+    ],
+
 ];
