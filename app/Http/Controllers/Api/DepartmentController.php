@@ -15,6 +15,16 @@ class DepartmentController extends Controller
         return response()->json(Department::all());
     }
 
+    // GET /departments/public — عام، الأقسام مع تخصصاتها لصفحة الهبوط
+    public function publicIndex()
+    {
+        $departments = Department::with(['specializations:id,department_id,name,degree'])
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return response()->json($departments);
+    }
+
     public function store(Request $request)
     {
         Gate::authorize('manage-org-structure');
