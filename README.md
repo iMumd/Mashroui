@@ -28,6 +28,12 @@ php artisan serve
 
 `--seed` creates the initial super admin and reference data (departments, specializations, academic term). Check `database/seeders` for the default login.
 
+Notification and assistant jobs are queued, not sent inline — run a worker or they'll stay `pending`:
+
+```bash
+php artisan queue:work
+```
+
 ## Roles
 
 Five roles, checked via `RoleEnum`: `super_admin`, `committee`, `supervisor`, `team_leader`, `student`. Permissions per role/module (projects, proposals, tasks, meetings) are enforced through `AccessControl` and Laravel Policies — super admin bypasses everything via `Gate::before`.
@@ -46,6 +52,10 @@ Credentials and announcements go out over email or WhatsApp. WhatsApp isn't the 
 ## Auth
 
 Token-based via Sanctum. Login is rate-limited (5 attempts/minute per email+IP). New users are invited by email/link and set their own password on first login — there's a `force-password-change` middleware gate that blocks API access until that's done.
+
+## Assistant (فِكرة)
+
+`POST /assistant/chat` proxies to an Ollama model (`fikra`) over `FIKRA_API_URL`. In dev this points at a personal ngrok tunnel, not a shared service — it only works while whoever owns the tunnel has it running. Point `FIKRA_API_URL`/`FIKRA_MODEL` in `.env` at your own Ollama instance to use it independently.
 
 ## Notes for contributors
 
