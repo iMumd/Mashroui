@@ -63,6 +63,7 @@ class FeaturedProjectSeeder extends Seeder
             'specialization_id' => $specialization->id,
             'term_id' => $termId,
             'status' => ProjectStatusEnum::Completed,
+            'completed_at' => now(),
             'is_featured' => true,
         ]);
     }
