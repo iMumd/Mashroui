@@ -16,36 +16,44 @@ class TestUsersSeeder extends Seeder
         $specializationId = Specialization::value('id');
 
         User::create([
-            'name' => 'Committee Member',
+            'name' => 'أ. منار حمدان',
             'email' => 'committee@mashroui.local',
             'password' => 'password',
             'role' => RoleEnum::Committee,
+            'whatsapp' => '970569845112',
+            'employee_number' => 'EMP-1002',
         ]);
 
         User::create([
-            'name' => 'Supervisor',
+            'name' => 'م. خالد أبو غزالة',
             'email' => 'supervisor@mashroui.local',
             'password' => 'password',
             'role' => RoleEnum::Supervisor,
             'specialization_id' => $specializationId,
+            'whatsapp' => '970525567234',
+            'employee_number' => 'EMP-1003',
         ]);
 
         User::create([
-            'name' => 'Team Leader',
+            'name' => 'عبدالله الطويل',
             'email' => 'leader@mashroui.local',
             'password' => 'password',
             'role' => RoleEnum::TeamLeader,
             'specialization_id' => $specializationId,
             'term_id' => $termId,
+            'whatsapp' => '970599887654',
+            'university_number' => '12010547',
         ]);
 
         User::create([
-            'name' => 'Student',
+            'name' => 'زيد النتشة',
             'email' => 'student@mashroui.local',
             'password' => 'password',
             'role' => RoleEnum::Student,
             'specialization_id' => $specializationId,
             'term_id' => $termId,
+            'whatsapp' => '970568741235',
+            'university_number' => '12010912',
         ]);
     }
 }

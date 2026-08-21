@@ -56,14 +56,17 @@ class DemoDataSeeder extends Seeder
         $supHeba = User::create([
             'name' => 'م. هبة الزعبي', 'email' => 'h.zoubi@mashroui.local',
             'password' => 'password', 'role' => RoleEnum::Supervisor, 'specialization_id' => $mediaBachelor->id,
+            'whatsapp' => '970569234481', 'employee_number' => 'EMP-1005',
         ]);
         $supRami = User::create([
             'name' => 'م. رامي قاسم', 'email' => 'r.qasem@mashroui.local',
             'password' => 'password', 'role' => RoleEnum::Supervisor, 'specialization_id' => $db->id,
+            'whatsapp' => '970525871123', 'employee_number' => 'EMP-1006',
         ]);
         $supNour = User::create([
             'name' => 'د. نور الشريف', 'email' => 'n.sharif@mashroui.local',
             'password' => 'password', 'role' => RoleEnum::Supervisor, 'specialization_id' => $web->id,
+            'whatsapp' => '970542298761', 'employee_number' => 'EMP-1007',
         ]);
 
         // ===== فريق 1: النظام الأساسي (حسابات الاختبار) — قيد التنفيذ =====
@@ -312,11 +315,15 @@ class DemoDataSeeder extends Seeder
         ]);
     }
 
+    private int $studentSeq = 0;
+
     private function leader(string $name, string $email, int $specId): User
     {
         return User::create([
             'name' => $name, 'email' => $email, 'password' => 'password',
             'role' => RoleEnum::TeamLeader, 'specialization_id' => $specId, 'term_id' => $this->termId,
+            'whatsapp' => $this->palestinianNumber(),
+            'university_number' => $this->universityNumber(),
         ]);
     }
 
@@ -325,7 +332,29 @@ class DemoDataSeeder extends Seeder
         return User::create([
             'name' => $name, 'email' => $email, 'password' => 'password',
             'role' => RoleEnum::Student, 'specialization_id' => $specId, 'term_id' => $this->termId,
+            'whatsapp' => $this->palestinianNumber(),
+            'university_number' => $this->universityNumber(),
         ]);
+    }
+
+    /** رقم واتساب فلسطيني واقعي (بادئات جوال وأوريدو الشائعة) بصيغة wa.me: 970 بدون صفر أو + */
+    private function palestinianNumber(): string
+    {
+        $prefixes = ['59', '56', '52', '54'];
+        $prefix = $prefixes[$this->studentSeq % count($prefixes)];
+        $line = str_pad((string) (2210000 + $this->studentSeq * 37), 7, '0', STR_PAD_LEFT);
+
+        return '970'.$prefix.$line;
+    }
+
+    /** رقم جامعي بصيغة سنة القبول + رقم تسلسلي، بأسلوب الجامعات الفلسطينية */
+    private function universityNumber(): string
+    {
+        $years = ['120', '121', '122'];
+        $year = $years[$this->studentSeq % count($years)];
+        $this->studentSeq++;
+
+        return $year.str_pad((string) (500 + $this->studentSeq * 13), 5, '0', STR_PAD_LEFT);
     }
 
     /** @param  User[]  $members */

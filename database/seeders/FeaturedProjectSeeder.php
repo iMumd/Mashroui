@@ -34,6 +34,8 @@ class FeaturedProjectSeeder extends Seeder
                 'password' => 'password',
                 'role' => RoleEnum::Supervisor,
                 'specialization_id' => $specialization->id,
+                'whatsapp' => '970599234567',
+                'employee_number' => 'EMP-1004',
             ]
         );
 
@@ -45,6 +47,8 @@ class FeaturedProjectSeeder extends Seeder
                 'role' => RoleEnum::TeamLeader,
                 'specialization_id' => $specialization->id,
                 'term_id' => $termId,
+                'whatsapp' => '970562348871',
+                'university_number' => '12110234',
             ]
         );
 
@@ -64,6 +68,8 @@ class FeaturedProjectSeeder extends Seeder
                 'role' => RoleEnum::Student,
                 'specialization_id' => $specialization->id,
                 'term_id' => $termId,
+                'whatsapp' => '970598812245',
+                'university_number' => '12110567',
             ]
         );
 
