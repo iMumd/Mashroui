@@ -4,9 +4,11 @@ namespace Database\Seeders;
 
 use App\Enums\ProjectStatusEnum;
 use App\Enums\RoleEnum;
+use App\Enums\TaskStatusEnum;
 use App\Models\AcademicTerm;
 use App\Models\Project;
 use App\Models\Specialization;
+use App\Models\Task;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
@@ -22,7 +24,7 @@ class FeaturedProjectSeeder extends Seeder
         $supervisor = User::firstOrCreate(
             ['email' => 'supervisor.featured@mashroui.local'],
             [
-                'name' => 'Featured Demo Supervisor',
+                'name' => 'م. سامر خليل',
                 'password' => 'password',
                 'role' => RoleEnum::Supervisor,
                 'specialization_id' => $specialization->id,
@@ -32,7 +34,7 @@ class FeaturedProjectSeeder extends Seeder
         $leader = User::firstOrCreate(
             ['email' => 'leader.featured@mashroui.local'],
             [
-                'name' => 'Featured Demo Leader',
+                'name' => 'أحمد عودة',
                 'password' => 'password',
                 'role' => RoleEnum::TeamLeader,
                 'specialization_id' => $specialization->id,
@@ -66,5 +68,19 @@ class FeaturedProjectSeeder extends Seeder
             'completed_at' => now(),
             'is_featured' => true,
         ]);
+
+        foreach ([
+            'تصميم واجهات النظام',
+            'بناء نموذج التعرف على الوجه',
+            'تكامل لوحة التقارير والإحصائيات',
+            'اختبار النظام والتسليم النهائي',
+        ] as $title) {
+            Task::create([
+                'team_id' => $team->id,
+                'title' => $title,
+                'status' => TaskStatusEnum::Done,
+                'created_by' => $supervisor->id,
+            ]);
+        }
     }
 }
