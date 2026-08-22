@@ -12,7 +12,7 @@ class ProgressExportController extends Controller
 {
     public function export(Request $request, ProgressExportService $service)
     {
-        abort_unless(in_array($request->user()->role, [RoleEnum::Committee, RoleEnum::Supervisor], true), 403);
+        abort_unless(in_array($request->user()->role, [RoleEnum::Committee, RoleEnum::Supervisor, RoleEnum::SuperAdmin], true), 403);
 
         $spreadsheet = $service->build($request->user());
 

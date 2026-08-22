@@ -23,7 +23,7 @@ class UserController extends Controller
         $actor = $request->user();
 
         if ($actor->role === RoleEnum::SuperAdmin) {
-            $allowedRoles = [RoleEnum::Supervisor->value, RoleEnum::Committee->value];
+            $allowedRoles = [RoleEnum::Student->value, RoleEnum::Supervisor->value, RoleEnum::Committee->value];
         } elseif ($actor->role === RoleEnum::Committee) {
             $allowedRoles = [RoleEnum::Student->value, RoleEnum::Supervisor->value];
         } else {
@@ -87,7 +87,7 @@ class UserController extends Controller
         $actor = $request->user();
 
         if ($actor->role === RoleEnum::SuperAdmin) {
-            abort_unless(in_array($user->role, [RoleEnum::Supervisor, RoleEnum::Committee], true), 404);
+            abort_unless(in_array($user->role, [RoleEnum::Supervisor, RoleEnum::Committee, RoleEnum::TeamLeader, RoleEnum::Student], true), 404);
 
             return;
         }

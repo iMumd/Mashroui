@@ -12,7 +12,7 @@ class ProgressController extends Controller
     // GET /progress — نسبة تقدّم الفرق (لجنة: الكل، مشرف: فرقه فقط)
     public function index(Request $request, ProgressService $service)
     {
-        abort_unless(in_array($request->user()->role, [RoleEnum::Committee, RoleEnum::Supervisor], true), 403);
+        abort_unless(in_array($request->user()->role, [RoleEnum::Committee, RoleEnum::Supervisor, RoleEnum::SuperAdmin], true), 403);
 
         return response()->json($service->overview($request->user()));
     }
