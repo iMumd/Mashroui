@@ -24,7 +24,7 @@ class AssistantService
         $messages[] = ['role' => 'user', 'content' => $message];
 
         $response = Http::withHeaders(['ngrok-skip-browser-warning' => 'true'])
-            ->timeout(60)
+            ->timeout(110)
             ->post(rtrim(config('services.fikra.base_url'), '/').'/api/chat', [
                 'model' => config('services.fikra.model'),
                 'messages' => $messages,
