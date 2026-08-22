@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Project;
 use App\Models\Scopes\TermScope;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class AssistantService
@@ -24,7 +25,7 @@ class AssistantService
         $messages[] = ['role' => 'user', 'content' => $message];
 
         $response = Http::withHeaders(['ngrok-skip-browser-warning' => 'true'])
-            ->timeout(110)
+            ->timeout(55)
             ->post(rtrim(config('services.fikra.base_url'), '/').'/api/chat', [
                 'model' => config('services.fikra.model'),
                 'messages' => $messages,
@@ -44,35 +45,28 @@ class AssistantService
         return $reply;
     }
 
+    /** سياق مختصر جداً (اسم + قسم + حالة فقط) — نموذج CPU صغير يبطّئ كثيراً مع نص طويل بكل رسالة */
     private function buildProjectsContext(): ?string
     {
         $projects = Project::withoutGlobalScope(TermScope::class)
-            ->with(['department:id,name', 'specialization:id,name', 'proposal:id,project_id,description,problems,solutions,features_value'])
-            ->select(['id', 'name', 'description', 'department_id', 'specialization_id', 'status'])
+            ->with(['department:id,name'])
+            ->select(['id', 'name', 'department_id', 'status'])
             ->latest('id')
-            ->limit(200)
+            ->limit(15)
             ->get();
 
         if ($projects->isEmpty()) {
             return null;
         }
 
-        $lines = ['[PROJECTS_CONTEXT]'];
+        $lines = ['[PROJECTS_CONTEXT] عناوين مشاريع تخرج سابقة/حالية على المنصة، للرجوع إليها فقط لو سُئلت عن تشابه فكرة:'];
 
         foreach ($projects as $project) {
             $lines[] = sprintf(
-                '- المشروع: "%s" | القسم: %s | التخصص: %s | الحالة: %s',
-                $project->name,
+                '- %s (%s، %s)',
+                Str::limit($project->name, 70),
                 $project->department?->name ?? 'غير محدد',
-                $project->specialization?->name ?? 'غير محدد',
                 $project->status->value,
-            );
-            $lines[] = '  الوصف: '.($project->proposal?->description ?? $project->description ?? 'لا يوجد وصف');
-            $lines[] = sprintf(
-                '  المشكلة: %s | الحل: %s | القيمة المضافة: %s',
-                $project->proposal?->problems ?? 'غير متوفر',
-                $project->proposal?->solutions ?? 'غير متوفر',
-                $project->proposal?->features_value ?? 'غير متوفر',
             );
         }
 
