@@ -33,4 +33,9 @@ class TeamPolicy
     {
         return $this->update($user, $team);
     }
+
+    public function restore(User $user, Team $team): bool
+    {
+        return $this->update($user, $team);
+    }
 }

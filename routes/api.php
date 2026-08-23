@@ -80,6 +80,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::get('/users', [UserController::class, 'index']);
 
             Route::get('/teams/export', [TeamExportController::class, 'export']);
+            Route::get('/teams/trashed', [TeamController::class, 'trashed']);
+            Route::post('/teams/{team}/restore', [TeamController::class, 'restore']);
 
             Route::apiResource('teams', TeamController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 

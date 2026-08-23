@@ -77,6 +77,34 @@ class TeamController extends Controller
         return response()->json(null, 204);
     }
 
+    public function trashed()
+    {
+        return TeamResource::collection(
+            Team::onlyTrashed()
+                ->with('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports')
+                ->get()
+        );
+    }
+
+    public function restore(Request $request, int $team)
+    {
+        $team = Team::onlyTrashed()->findOrFail($team);
+
+        Gate::authorize('restore', $team);
+
+        $team->restore();
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'restore',
+            'entity' => 'team',
+            'entity_id' => $team->id,
+            'meta' => ['name' => $team->name],
+        ]);
+
+        return new TeamResource($team->load('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports'));
+    }
+
     public function addMember(Request $request, Team $team, TeamService $teamService)
     {
         Gate::authorize('update', $team);
