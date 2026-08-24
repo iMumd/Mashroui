@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['user_id', 'module', 'level', 'restricted_by'])]
+#[Fillable(['user_id', 'module', 'level', 'reason', 'restricted_by'])]
 class UserRestriction extends Model
 {
     protected function casts(): array

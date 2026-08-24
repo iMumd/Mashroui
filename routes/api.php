@@ -50,9 +50,13 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::get('/me/abilities', [AuthController::class, 'abilities']);
         Route::post('/users', [UserController::class, 'store']);
+        Route::get('/users/trashed', [UserController::class, 'trashed']);
         Route::patch('/users/{user}', [UserController::class, 'update']);
         Route::patch('/users/{user}/status', [UserController::class, 'updateStatus']);
         Route::post('/users/{user}/invite', [InviteController::class, 'invite']);
+        Route::post('/users/{user}/restore', [UserController::class, 'restore']);
+        Route::post('/users/{user}/set-password', [UserController::class, 'setPassword']);
+        Route::delete('/users/{user}', [UserController::class, 'destroy']);
 
         Route::apiResource('departments', DepartmentController::class);
         Route::apiResource('specializations', SpecializationController::class);

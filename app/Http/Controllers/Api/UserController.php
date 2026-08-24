@@ -6,6 +6,7 @@ use App\Enums\RoleEnum;
 use App\Enums\UserStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Models\AuditLog;
 use App\Models\InviteLink;
 use App\Models\TeamMember;
 use App\Models\User;
@@ -71,11 +72,110 @@ class UserController extends Controller
 
         $data = $request->validate([
             'status' => ['required', Rule::in([UserStatusEnum::Active->value, UserStatusEnum::Restricted->value])],
+            'reason' => ['required_if:status,restricted', 'nullable', 'string', 'max:500'],
         ]);
 
-        $user->update(['status' => $data['status']]);
+        $isRestricting = $data['status'] === UserStatusEnum::Restricted->value;
+
+        $user->update([
+            'status' => $data['status'],
+            'restricted_reason' => $isRestricting ? $data['reason'] : null,
+        ]);
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => $isRestricting ? 'restrict' : 'unrestrict',
+            'entity' => 'user',
+            'entity_id' => $user->id,
+            'meta' => $isRestricting ? ['reason' => $data['reason']] : [],
+        ]);
 
         return new UserResource($user);
+    }
+
+    public function destroy(Request $request, User $user)
+    {
+        $this->authorizeManageTarget($request, $user);
+
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        $user->update(['deleted_reason' => $data['reason']]);
+        $user->delete();
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'delete',
+            'entity' => 'user',
+            'entity_id' => $user->id,
+            'meta' => ['name' => $user->name, 'reason' => $data['reason']],
+        ]);
+
+        return response()->json(null, 204);
+    }
+
+    public function trashed(Request $request)
+    {
+        $actor = $request->user();
+
+        if ($actor->role === RoleEnum::SuperAdmin) {
+            $allowedRoles = [RoleEnum::Supervisor->value, RoleEnum::Committee->value];
+        } elseif ($actor->role === RoleEnum::Committee) {
+            $allowedRoles = [RoleEnum::Student->value, RoleEnum::Supervisor->value];
+        } else {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'role' => ['required', Rule::in($allowedRoles)],
+        ]);
+
+        $users = User::onlyTrashed()->where('role', $data['role'])->orderBy('name')->get();
+
+        return UserResource::collection($users);
+    }
+
+    public function restore(Request $request, int $user)
+    {
+        $user = User::onlyTrashed()->findOrFail($user);
+
+        $this->authorizeManageTarget($request, $user);
+
+        $user->update(['deleted_reason' => null]);
+        $user->restore();
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'restore',
+            'entity' => 'user',
+            'entity_id' => $user->id,
+            'meta' => ['name' => $user->name],
+        ]);
+
+        return new UserResource($user);
+    }
+
+    public function setPassword(Request $request, User $user)
+    {
+        $this->authorizeManageTarget($request, $user);
+
+        $password = Str::password(12);
+
+        $user->update([
+            'password' => $password,
+            'must_change_password' => true,
+        ]);
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'set_password',
+            'entity' => 'user',
+            'entity_id' => $user->id,
+            'meta' => [],
+        ]);
+
+        return response()->json(['password' => $password]);
     }
 
     /**

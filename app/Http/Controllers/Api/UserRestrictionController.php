@@ -30,9 +30,10 @@ class UserRestrictionController extends Controller
         $data = $request->validate([
             'module' => ['required', Rule::in(AccessControl::MODULES)],
             'level' => ['required', Rule::in(['view_only', 'blocked'])],
+            'reason' => ['required', 'string', 'max:500'],
         ]);
 
-        $restriction = $service->restrict($user, $data['module'], AccessLevelEnum::from($data['level']), $request->user());
+        $restriction = $service->restrict($user, $data['module'], AccessLevelEnum::from($data['level']), $request->user(), $data['reason']);
 
         return response()->json($restriction, 201);
     }

@@ -12,13 +12,13 @@ use Illuminate\Validation\ValidationException;
 
 class UserRestrictionService
 {
-    public function restrict(User $target, string $module, AccessLevelEnum $level, User $actor): UserRestriction
+    public function restrict(User $target, string $module, AccessLevelEnum $level, User $actor, string $reason): UserRestriction
     {
         $this->assertCanManage($target, $module, $actor);
 
         $restriction = UserRestriction::updateOrCreate(
             ['user_id' => $target->id, 'module' => $module],
-            ['level' => $level, 'restricted_by' => $actor->id],
+            ['level' => $level, 'reason' => $reason, 'restricted_by' => $actor->id],
         );
 
         AuditLog::create([
@@ -26,7 +26,7 @@ class UserRestrictionService
             'action' => 'restrict',
             'entity' => 'user',
             'entity_id' => $target->id,
-            'meta' => ['module' => $module, 'level' => $level->value],
+            'meta' => ['module' => $module, 'level' => $level->value, 'reason' => $reason],
         ]);
 
         return $restriction;

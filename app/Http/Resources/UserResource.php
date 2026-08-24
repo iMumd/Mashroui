@@ -18,6 +18,8 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'role' => $this->role,
             'status' => $this->status,
+            'restricted_reason' => $this->restricted_reason,
+            'deleted_reason' => $this->deleted_reason,
             'specialization_id' => $this->specialization_id,
             'email' => $canSeeContact ? $this->email : null,
             'whatsapp' => $canSeeContact ? $this->whatsapp : null,
