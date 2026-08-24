@@ -201,16 +201,29 @@ class UserController extends Controller
         abort(403);
     }
 
+    /**
+     * سوبر أدمن ينشئ حسابات مشرفين ولجنة إشراف. لجنة الإشراف تنشئ حسابات مشرفين وطلاب
+     * (طلاب أيضًا عبر استيراد Excel الجماعي — هذا المسار لإضافة حساب واحد مباشرة).
+     */
     public function store(Request $request)
     {
-        abort_unless($request->user()->role === RoleEnum::SuperAdmin, 403);
+        $actor = $request->user();
+
+        if ($actor->role === RoleEnum::SuperAdmin) {
+            $allowedRoles = [RoleEnum::Supervisor->value, RoleEnum::Committee->value];
+        } elseif ($actor->role === RoleEnum::Committee) {
+            $allowedRoles = [RoleEnum::Supervisor->value, RoleEnum::Student->value];
+        } else {
+            abort(403);
+        }
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
-            'role' => ['required', Rule::in([RoleEnum::Supervisor->value, RoleEnum::Committee->value])],
+            'role' => ['required', Rule::in($allowedRoles)],
             'whatsapp' => ['nullable', new WhatsappNumber],
             'employee_number' => ['nullable', 'string', 'max:30'],
+            'university_number' => ['nullable', 'string', 'max:30'],
             'specialization_id' => ['nullable', 'exists:specializations,id'],
         ]);
 
@@ -222,6 +235,7 @@ class UserController extends Controller
                 'role' => $data['role'],
                 'whatsapp' => $data['whatsapp'] ?? null,
                 'employee_number' => $data['employee_number'] ?? null,
+                'university_number' => $data['university_number'] ?? null,
                 'specialization_id' => $data['specialization_id'] ?? null,
                 'status' => UserStatusEnum::Active,
                 'must_change_password' => true,

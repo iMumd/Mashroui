@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\CommitteeDashboardController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DiscussionController;
 use App\Http\Controllers\Api\DiscussionExportController;
+use App\Http\Controllers\Api\DiscussionImportController;
 use App\Http\Controllers\Api\FinalReportController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\MeetingController;
@@ -138,6 +139,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::post('/tasks/{task}/notes', [TaskNoteController::class, 'store']);
 
             Route::get('/discussions/export', [DiscussionExportController::class, 'export']);
+            Route::post('/discussions/import/preview', [DiscussionImportController::class, 'preview']);
+            Route::post('/discussions/import/confirm', [DiscussionImportController::class, 'confirm']);
             Route::apiResource('discussions', DiscussionController::class)->except(['create', 'edit']);
         });
     });
