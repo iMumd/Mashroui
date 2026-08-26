@@ -36,7 +36,7 @@ class TaskController extends Controller
 
         $task = $service->create($data, $request->user());
 
-        return response()->json($task, 201);
+        return (new TaskResource($task->load('createdBy')))->response()->setStatusCode(201);
     }
 
     public function show(Task $task)
@@ -57,7 +57,7 @@ class TaskController extends Controller
 
         $task->update($data);
 
-        return response()->json($task);
+        return new TaskResource($task->load('createdBy'));
     }
 
     public function destroy(Request $request, Task $task)
@@ -87,7 +87,7 @@ class TaskController extends Controller
 
         $task = $service->changeStatus($task, TaskStatusEnum::from($data['status']), $request->user());
 
-        return response()->json($task);
+        return new TaskResource($task->load('createdBy'));
     }
 
     public function progress(Team $team, ProgressService $service)

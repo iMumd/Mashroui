@@ -23,6 +23,7 @@ class TaskService
             'team_id' => $team->id,
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
+            'status' => TaskStatusEnum::Pending,
             'created_by' => $creator->id,
         ]);
 
