@@ -25,6 +25,7 @@ class TeamController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
+            'section' => ['nullable', 'string', 'max:50'],
             'supervisor_id' => ['required', 'exists:users,id'],
             'specialization_id' => ['required', 'exists:specializations,id'],
             'member_ids' => ['required', 'array', 'min:1', 'max:4'],

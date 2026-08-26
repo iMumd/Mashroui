@@ -36,6 +36,7 @@ class TeamService
         return DB::transaction(function () use ($data, $termId) {
             $team = Team::create([
                 'name' => $data['name'],
+                'section' => $data['section'] ?? null,
                 'supervisor_id' => $data['supervisor_id'],
                 'specialization_id' => $data['specialization_id'],
                 'term_id' => $termId,
