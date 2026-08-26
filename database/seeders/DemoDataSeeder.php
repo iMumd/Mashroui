@@ -25,16 +25,16 @@ use Illuminate\Support\Facades\Storage;
 class DemoDataSeeder extends Seeder
 {
     /** فيديوهات حقيقية قابلة للتشغيل (Blender Foundation، مفتوحة المصدر) تُستخدم كعرض نهائي توضيحي */
-    private const DEMO_VIDEOS = [
+    protected const DEMO_VIDEOS = [
         'https://www.youtube.com/watch?v=YE7VzlLtp-4',
         'https://www.youtube.com/watch?v=eRsGyueVLvQ',
         'https://www.youtube.com/watch?v=R6MlUcmOul8',
         'https://www.youtube.com/watch?v=TLkA0RELQ1g',
     ];
 
-    private ?int $termId = null;
+    protected ?int $termId = null;
 
-    private array $spec = [];
+    protected array $spec = [];
 
     public function run(): void
     {
@@ -315,9 +315,9 @@ class DemoDataSeeder extends Seeder
         ]);
     }
 
-    private int $studentSeq = 0;
+    protected int $studentSeq = 0;
 
-    private function leader(string $name, string $email, int $specId): User
+    protected function leader(string $name, string $email, int $specId): User
     {
         return User::create([
             'name' => $name, 'email' => $email, 'password' => 'password',
@@ -327,7 +327,7 @@ class DemoDataSeeder extends Seeder
         ]);
     }
 
-    private function student(string $name, string $email, int $specId): User
+    protected function student(string $name, string $email, int $specId): User
     {
         return User::create([
             'name' => $name, 'email' => $email, 'password' => 'password',
@@ -338,7 +338,7 @@ class DemoDataSeeder extends Seeder
     }
 
     /** رقم واتساب فلسطيني واقعي (بادئات جوال وأوريدو الشائعة) بصيغة wa.me: 970 بدون صفر أو + */
-    private function palestinianNumber(): string
+    protected function palestinianNumber(): string
     {
         $prefixes = ['59', '56', '52', '54'];
         $prefix = $prefixes[$this->studentSeq % count($prefixes)];
@@ -348,7 +348,7 @@ class DemoDataSeeder extends Seeder
     }
 
     /** رقم جامعي بصيغة سنة القبول + رقم تسلسلي، بأسلوب الجامعات الفلسطينية */
-    private function universityNumber(): string
+    protected function universityNumber(): string
     {
         $years = ['120', '121', '122'];
         $year = $years[$this->studentSeq % count($years)];
@@ -358,7 +358,7 @@ class DemoDataSeeder extends Seeder
     }
 
     /** @param  User[]  $members */
-    private function makeTeam(
+    protected function makeTeam(
         string $name, User $supervisor, User $leader, array $members, Specialization $spec,
         string $projectName, string $description, ProjectStatusEnum $status, ?\Illuminate\Support\Carbon $completedAt = null,
     ): array {
@@ -381,7 +381,7 @@ class DemoDataSeeder extends Seeder
         return [$team, $project];
     }
 
-    private function approvedProposal(Project $project, User $leader, User $supervisor, string $fileName, string $problems, string $solutions, string $features): void
+    protected function approvedProposal(Project $project, User $leader, User $supervisor, string $fileName, string $problems, string $solutions, string $features): void
     {
         Proposal::create([
             'project_id' => $project->id, 'name' => $project->name, 'description' => $project->description,
@@ -391,7 +391,7 @@ class DemoDataSeeder extends Seeder
         ]);
     }
 
-    private function pendingProposal(Project $project, User $leader, string $fileName, string $problems, string $solutions, string $features): void
+    protected function pendingProposal(Project $project, User $leader, string $fileName, string $problems, string $solutions, string $features): void
     {
         Proposal::create([
             'project_id' => $project->id, 'name' => $project->name, 'description' => $project->description,
@@ -401,7 +401,7 @@ class DemoDataSeeder extends Seeder
         ]);
     }
 
-    private function rejectedProposal(Project $project, User $leader, User $supervisor, string $fileName, string $problems, string $solutions, string $features, string $reason): void
+    protected function rejectedProposal(Project $project, User $leader, User $supervisor, string $fileName, string $problems, string $solutions, string $features, string $reason): void
     {
         Proposal::create([
             'project_id' => $project->id, 'name' => $project->name, 'description' => $project->description,
@@ -413,7 +413,7 @@ class DemoDataSeeder extends Seeder
     }
 
     /** @param  array<array{0:string,1:TaskStatusEnum}>  $items */
-    private function tasks(Team $team, User $creator, array $items): void
+    protected function tasks(Team $team, User $creator, array $items): void
     {
         foreach ($items as [$title, $status]) {
             Task::create(['team_id' => $team->id, 'title' => $title, 'status' => $status, 'created_by' => $creator->id]);
@@ -421,7 +421,7 @@ class DemoDataSeeder extends Seeder
     }
 
     /** @param  array<array{0:string,1:\Illuminate\Support\Carbon,2:?string}>  $items */
-    private function meetings(Team $team, User $creator, array $items): void
+    protected function meetings(Team $team, User $creator, array $items): void
     {
         $links = ['https://meet.google.com/xyz-abcd-efg', 'https://meet.google.com/lmn-opqr-stu', 'https://meet.google.com/qrt-uvwx-yzc'];
         foreach ($items as $i => [$title, $when, $notes]) {
@@ -432,7 +432,7 @@ class DemoDataSeeder extends Seeder
         }
     }
 
-    private function finalReport(Project $project, User $leader, string $fileName, string $videoUrl): void
+    protected function finalReport(Project $project, User $leader, string $fileName, string $videoUrl): void
     {
         FinalReport::create([
             'project_id' => $project->id,
@@ -442,7 +442,7 @@ class DemoDataSeeder extends Seeder
         ]);
     }
 
-    private function discussion(Project $project, User $supervisor, string $place, \Illuminate\Support\Carbon $date, string $time, string $committee): void
+    protected function discussion(Project $project, User $supervisor, string $place, \Illuminate\Support\Carbon $date, string $time, string $committee): void
     {
         Discussion::create([
             'project_id' => $project->id, 'supervisor_id' => $supervisor->id, 'place' => $place,
@@ -452,7 +452,7 @@ class DemoDataSeeder extends Seeder
         ]);
     }
 
-    private function placeholderPdf(string $folder, string $displayName): string
+    protected function placeholderPdf(string $folder, string $displayName): string
     {
         $path = $folder.'/'.uniqid().'.pdf';
         Storage::put($path, "%PDF-1.4\n% ملف عرض توضيحي — $displayName\n%%EOF");

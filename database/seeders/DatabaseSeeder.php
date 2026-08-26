@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             TestUsersSeeder::class,
             FeaturedProjectSeeder::class,
             DemoDataSeeder::class,
+            DemoDataExpansionSeeder::class,
         ]);
     }
 }
