@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Enums\AccessLevelEnum;
 use App\Enums\RoleEnum;
 use App\Models\AuditLog;
-use App\Models\Team;
+use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\UserRestriction;
 use Illuminate\Validation\ValidationException;
@@ -53,7 +53,7 @@ class UserRestrictionService
             return true;
         }
 
-        return $actor->role === RoleEnum::Supervisor && $this->isOwnTeamLeader($actor, $target);
+        return $actor->role === RoleEnum::Supervisor && $this->isOwnTeamMember($actor, $target);
     }
 
     private function assertCanManage(User $target, string $module, User $actor): void
@@ -66,13 +66,15 @@ class UserRestrictionService
             return;
         }
 
-        if ($target->role !== RoleEnum::TeamLeader || $module !== 'tasks' || ! $this->isOwnTeamLeader($actor, $target)) {
-            throw ValidationException::withMessages(['user_id' => 'المشرف يقدر يقيّد قائد فريقه على وحدة المهام فقط.']);
+        if ($module !== 'tasks' || ! $this->isOwnTeamMember($actor, $target)) {
+            throw ValidationException::withMessages(['user_id' => 'المشرف يقدر يقيّد أعضاء فريقه على وحدة المهام فقط.']);
         }
     }
 
-    private function isOwnTeamLeader(User $supervisor, User $leader): bool
+    private function isOwnTeamMember(User $supervisor, User $member): bool
     {
-        return Team::where('supervisor_id', $supervisor->id)->where('leader_id', $leader->id)->exists();
+        return TeamMember::where('student_id', $member->id)
+            ->whereHas('team', fn ($q) => $q->where('supervisor_id', $supervisor->id))
+            ->exists();
     }
 }
