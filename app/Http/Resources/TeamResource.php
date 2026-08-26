@@ -12,6 +12,7 @@ class TeamResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'section' => $this->section,
             'specialization_id' => $this->specialization_id,
             'term_id' => $this->term_id,
             'supervisor' => new UserResource($this->whenLoaded('supervisor')),

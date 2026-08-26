@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['name', 'supervisor_id', 'specialization_id', 'term_id', 'leader_id'])]
+#[Fillable(['name', 'section', 'supervisor_id', 'specialization_id', 'term_id', 'leader_id'])]
 class Team extends Model
 {
     use SoftDeletes;

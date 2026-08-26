@@ -51,6 +51,7 @@ class TeamController extends Controller
 
         $data = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:150'],
+            'section' => ['sometimes', 'nullable', 'string', 'max:50'],
             'supervisor_id' => ['sometimes', 'required', 'exists:users,id'],
             'specialization_id' => ['sometimes', 'required', 'exists:specializations,id'],
         ]);
