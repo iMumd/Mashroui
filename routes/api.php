@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DiscussionController;
 use App\Http\Controllers\Api\DiscussionExportController;
 use App\Http\Controllers\Api\DiscussionImportController;
+use App\Http\Controllers\Api\EmailRelayController;
 use App\Http\Controllers\Api\FinalReportController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\MeetingController;
@@ -58,6 +59,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/users/{user}/restore', [UserController::class, 'restore']);
         Route::post('/users/{user}/set-password', [UserController::class, 'setPassword']);
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
+
+        Route::post('/email/send', [EmailRelayController::class, 'send']);
 
         Route::apiResource('departments', DepartmentController::class);
         Route::apiResource('specializations', SpecializationController::class);
