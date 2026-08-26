@@ -210,7 +210,7 @@ class UserController extends Controller
         $actor = $request->user();
 
         if ($actor->role === RoleEnum::SuperAdmin) {
-            $allowedRoles = [RoleEnum::Supervisor->value, RoleEnum::Committee->value];
+            $allowedRoles = [RoleEnum::Supervisor->value, RoleEnum::Committee->value, RoleEnum::Student->value];
         } elseif ($actor->role === RoleEnum::Committee) {
             $allowedRoles = [RoleEnum::Supervisor->value, RoleEnum::Student->value];
         } else {
