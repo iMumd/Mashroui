@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\UserRestrictionController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:login');
 Route::post('/invite/{token}/accept', [InviteController::class, 'accept'])->middleware('throttle:invite-accept');
 Route::get('/projects/featured', [ProjectController::class, 'featured'])->middleware('throttle:public');
 Route::get('/projects/public-archive', [ProjectController::class, 'publicArchive'])->middleware('throttle:public');

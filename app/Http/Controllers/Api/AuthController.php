@@ -4,14 +4,49 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\UserStatusEnum;
 use App\Http\Controllers\Controller;
+use App\Jobs\SendRelayEmail;
+use App\Models\InviteLink;
 use App\Models\User;
 use App\Support\Rbac\AccessControl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function forgotPassword(Request $request)
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $user = User::where('email', $data['email'])->first();
+
+        if ($user) {
+            $invite = InviteLink::create([
+                'user_id' => $user->id,
+                'token' => Str::random(64),
+                'expires_at' => now()->addHours(2),
+            ]);
+
+            $url = rtrim(config('app.frontend_url'), '/').'/reset-password?token='.$invite->token;
+
+            SendRelayEmail::dispatch(
+                $user->email,
+                'إعادة تعيين كلمة المرور - '.config('app.name'),
+                "مرحبًا {$user->name}،\n\nوصلنا طلب لإعادة تعيين كلمة مرورك على منصة ".config('app.name').".\n"
+                    ."اضغط/اضغطي الرابط التالي لتعيين كلمة مرور جديدة (صالح لمدة ساعتين):\n{$url}\n\n"
+                    .'إذا لم تطلب/تطلبي هذا، تجاهل/تجاهلي هذه الرسالة.'
+            );
+        }
+
+        // ما منفصح إذا البريد مسجّل عنا أو لأ — حماية من تسريب معلومة وجود الحساب
+        return response()->json([
+            'message' => 'إذا كان البريد الإلكتروني مسجّلاً لدينا، ستصلك رسالة تحتوي رابط إعادة تعيين كلمة المرور.',
+        ]);
+    }
+
     public function login(Request $request)
     {
         $credentials = $request->validate([
