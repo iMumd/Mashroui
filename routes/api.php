@@ -132,6 +132,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::get('/teams/{team}/tasks', [TaskController::class, 'index']);
             Route::post('/teams/{team}/tasks', [TaskController::class, 'store']);
             Route::post('/tasks/{task}/restore', [TaskController::class, 'restore']);
+            Route::delete('/tasks/{task}/force', [TaskController::class, 'forceDelete']);
             Route::get('/tasks/{task}', [TaskController::class, 'show']);
             Route::put('/tasks/{task}', [TaskController::class, 'update']);
             Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);

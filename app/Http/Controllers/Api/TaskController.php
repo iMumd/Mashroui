@@ -51,6 +51,25 @@ class TaskController extends Controller
         return new TaskResource($task->load('createdBy'));
     }
 
+    public function forceDelete(Request $request, int $task)
+    {
+        $task = Task::onlyTrashed()->findOrFail($task);
+
+        Gate::authorize('forceDelete', $task);
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'force_delete',
+            'entity' => 'task',
+            'entity_id' => $task->id,
+            'meta' => ['team_id' => $task->team_id, 'title' => $task->title],
+        ]);
+
+        $task->forceDelete();
+
+        return response()->json(null, 204);
+    }
+
     public function store(Request $request, Team $team, TaskService $service)
     {
         Gate::authorize('create', Task::class);
