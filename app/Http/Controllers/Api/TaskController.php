@@ -23,6 +23,34 @@ class TaskController extends Controller
         return TaskResource::collection($team->tasks()->with('createdBy')->get());
     }
 
+    public function trashed(Team $team)
+    {
+        Gate::authorize('viewAny', [Task::class, $team]);
+
+        return TaskResource::collection(
+            $team->tasks()->onlyTrashed()->with('createdBy')->get()
+        );
+    }
+
+    public function restore(Request $request, int $task)
+    {
+        $task = Task::onlyTrashed()->findOrFail($task);
+
+        Gate::authorize('restore', $task);
+
+        $task->restore();
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'restore',
+            'entity' => 'task',
+            'entity_id' => $task->id,
+            'meta' => ['team_id' => $task->team_id, 'title' => $task->title],
+        ]);
+
+        return new TaskResource($task->load('createdBy'));
+    }
+
     public function store(Request $request, Team $team, TaskService $service)
     {
         Gate::authorize('create', Task::class);
