@@ -36,6 +36,12 @@ return [
             'serve' => true,
             'throw' => false,
             'report' => false,
+            // بدون هاد الإعداد، فليسيستم بينشئ مجلدات جديدة بصلاحية 0700 (خاصة بالمستخدم يلي أنشأها بس) —
+            // بيمنع php-fpm (www-data) من قراءة/كتابة ملفات أنشأها CLI (deploy) والعكس. لازم تبقى group-writable.
+            'permissions' => [
+                'file' => ['public' => 0644, 'private' => 0664],
+                'dir' => ['public' => 0755, 'private' => 0775],
+            ],
         ],
 
         'public' => [
