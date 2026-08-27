@@ -23,7 +23,9 @@ class ProposalController extends Controller
     {
         Gate::authorize('view', $proposal);
 
-        return Storage::download($proposal->pdf_path, "{$proposal->name}.pdf");
+        $extension = pathinfo($proposal->pdf_path, PATHINFO_EXTENSION) ?: 'pdf';
+
+        return Storage::download($proposal->pdf_path, "{$proposal->name}.{$extension}");
     }
 
     public function store(Request $request, ProposalService $service)
@@ -33,11 +35,11 @@ class ProposalController extends Controller
         $data = $request->validate([
             'project_id' => ['required', 'exists:projects,id'],
             'name' => ['required', 'string', 'max:200'],
-            'description' => ['required', 'string'],
-            'problems' => ['required', 'string'],
-            'solutions' => ['required', 'string'],
-            'features_value' => ['required', 'string'],
-            'pdf' => ['required', 'file', 'mimes:pdf', 'max:10240'],
+            'description' => ['nullable', 'string'],
+            'problems' => ['nullable', 'string'],
+            'solutions' => ['nullable', 'string'],
+            'features_value' => ['nullable', 'string'],
+            'pdf' => ['required', 'file', 'mimes:pdf,doc,docx,ppt,pptx', 'max:10240'],
         ]);
 
         $proposal = $service->submit($data, $request->file('pdf'), $request->user());
@@ -51,11 +53,11 @@ class ProposalController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:200'],
-            'description' => ['required', 'string'],
-            'problems' => ['required', 'string'],
-            'solutions' => ['required', 'string'],
-            'features_value' => ['required', 'string'],
-            'pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+            'description' => ['nullable', 'string'],
+            'problems' => ['nullable', 'string'],
+            'solutions' => ['nullable', 'string'],
+            'features_value' => ['nullable', 'string'],
+            'pdf' => ['nullable', 'file', 'mimes:pdf,doc,docx,ppt,pptx', 'max:10240'],
         ]);
 
         $proposal = $service->resubmit($proposal, $data, $request->file('pdf'));
