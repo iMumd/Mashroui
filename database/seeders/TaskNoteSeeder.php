@@ -40,6 +40,10 @@ class TaskNoteSeeder extends Seeder
         $tasks = Task::with(['team.leader', 'team.members.student'])->get();
 
         foreach ($tasks as $task) {
+            if (! $task->team) {
+                continue;
+            }
+
             $pool = $this->notePool[$task->status->value] ?? $this->notePool[TaskStatusEnum::Pending->value];
 
             $authors = collect([$task->team->leader])
