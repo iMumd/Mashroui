@@ -31,8 +31,16 @@ class InviteController extends Controller
     {
         $invite = InviteLink::where('token', $token)->first();
 
-        if (! $invite || $invite->used_at || $invite->expires_at->isPast()) {
-            abort(410, 'رابط الدعوة منتهي أو غير صالح.');
+        if (! $invite) {
+            abort(410, 'رابط الدعوة غير صالح.');
+        }
+
+        if ($invite->used_at) {
+            abort(410, 'تم استخدام رابط الدعوة هذا مسبقًا لتعيين كلمة المرور. سجّل/سجّلي الدخول مباشرة بالبريد الإلكتروني وكلمة المرور، أو اطلب/اطلبي رابط دعوة جديد من المشرف.');
+        }
+
+        if ($invite->expires_at->isPast()) {
+            abort(410, 'انتهت صلاحية رابط الدعوة (٣ أيام من إصداره). اطلب/اطلبي رابط دعوة جديد من المشرف.');
         }
 
         $data = $request->validate([
