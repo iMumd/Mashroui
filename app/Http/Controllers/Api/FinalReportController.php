@@ -10,6 +10,7 @@ use App\Services\FinalReportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class FinalReportController extends Controller
 {
@@ -25,6 +26,21 @@ class FinalReportController extends Controller
         Gate::authorize('view', $finalReport);
 
         return Storage::download($finalReport->pdf_path, 'final-report.pdf');
+    }
+
+    // بيرجع رابط مؤقّت (موقّع) صالح لـ5 دقائق — نفس منطق ProposalController::downloadLink
+    public function downloadLink(FinalReport $finalReport)
+    {
+        Gate::authorize('view', $finalReport);
+
+        $url = URL::temporarySignedRoute('final-reports.download-signed', now()->addMinutes(5), ['finalReport' => $finalReport->id]);
+
+        return response()->json(['url' => $url]);
+    }
+
+    public function downloadSigned(FinalReport $finalReport)
+    {
+        return Storage::response($finalReport->pdf_path, 'final-report.pdf');
     }
 
     public function store(Request $request, Project $project, FinalReportService $service)

@@ -44,6 +44,13 @@ Route::get('/stats', [StatsController::class, 'index'])->middleware('throttle:pu
 Route::get('/committee/dashboard-stats', [CommitteeDashboardController::class, 'index'])
     ->middleware(['auth:sanctum', 'throttle:api', 'term']);
 
+// روابط تحميل موقّعة مؤقتة — تُفتح مباشرة بالمتصفح بدون توكن (التوقيع نفسه هو التفويض)، عشان تتفادى
+// مشاكل تحميل blob عبر JS (حاجب النوافذ المنبثقة، إضافات المتصفح، إلخ)
+Route::get('/proposals/{proposal}/download-signed', [ProposalController::class, 'downloadSigned'])
+    ->name('proposals.download-signed')->middleware('signed');
+Route::get('/final-reports/{finalReport}/download-signed', [FinalReportController::class, 'downloadSigned'])
+    ->name('final-reports.download-signed')->middleware('signed');
+
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/me/change-password', [AuthController::class, 'changePassword']);
@@ -103,6 +110,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::post('/proposals', [ProposalController::class, 'store']);
             Route::get('/proposals/{proposal}', [ProposalController::class, 'show']);
             Route::get('/proposals/{proposal}/download', [ProposalController::class, 'download']);
+            Route::get('/proposals/{proposal}/download-link', [ProposalController::class, 'downloadLink']);
             Route::put('/proposals/{proposal}', [ProposalController::class, 'update']);
             Route::post('/proposals/{proposal}/approve', [ProposalController::class, 'approve']);
             Route::post('/proposals/{proposal}/reject', [ProposalController::class, 'reject']);
@@ -118,6 +126,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::get('/projects/{project}/final-reports', [FinalReportController::class, 'index']);
             Route::post('/projects/{project}/final-reports', [FinalReportController::class, 'store']);
             Route::get('/final-reports/{finalReport}/download', [FinalReportController::class, 'download']);
+            Route::get('/final-reports/{finalReport}/download-link', [FinalReportController::class, 'downloadLink']);
 
             Route::get('/teams/{team}/meetings', [MeetingController::class, 'index']);
             Route::post('/teams/{team}/meetings', [MeetingController::class, 'store']);

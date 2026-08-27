@@ -9,6 +9,7 @@ use App\Services\ProposalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class ProposalController extends Controller
 {
@@ -26,6 +27,25 @@ class ProposalController extends Controller
         $extension = pathinfo($proposal->pdf_path, PATHINFO_EXTENSION) ?: 'pdf';
 
         return Storage::download($proposal->pdf_path, "{$proposal->name}.{$extension}");
+    }
+
+    // بيرجع رابط مؤقّت (موقّع) صالح لـ5 دقائق — الفرونت-إند بيفتحه بتبويب جديد كتنقّل عادي بالمتصفح
+    // بدون أي معالجة JS/blob، عشان يتفادى مشاكل حاجب النوافذ المنبثقة والإضافات مع blob: URLs
+    public function downloadLink(Proposal $proposal)
+    {
+        Gate::authorize('view', $proposal);
+
+        $url = URL::temporarySignedRoute('proposals.download-signed', now()->addMinutes(5), ['proposal' => $proposal->id]);
+
+        return response()->json(['url' => $url]);
+    }
+
+    // بيتفتح مباشرة بالمتصفح (توقيع الرابط هو التفويض، بدون توكن) — Content-Disposition: inline عشان يتعاين بالتبويب مباشرة
+    public function downloadSigned(Proposal $proposal)
+    {
+        $extension = pathinfo($proposal->pdf_path, PATHINFO_EXTENSION) ?: 'pdf';
+
+        return Storage::response($proposal->pdf_path, "{$proposal->name}.{$extension}");
     }
 
     public function store(Request $request, ProposalService $service)
