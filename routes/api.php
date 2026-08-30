@@ -48,6 +48,10 @@ Route::get('/stats', [StatsController::class, 'index'])->middleware('throttle:pu
 Route::get('/external/ai/projects', [AiProjectExportController::class, 'index'])
     ->middleware(['ai-key', 'throttle:public']);
 
+// يمرّر ال AI agent رقم الطالب (student_id) اللي بيحكي معه، فيرجعله فريقه وهل مشروع الفريق معتمد (تجاوز مرحلة proposed) ولا لسا.
+Route::get('/external/ai/student-team', [AiProjectExportController::class, 'studentTeam'])
+    ->middleware(['ai-key', 'throttle:public']);
+
 Route::get('/committee/dashboard-stats', [CommitteeDashboardController::class, 'index'])
     ->middleware(['auth:sanctum', 'throttle:api', 'term']);
 

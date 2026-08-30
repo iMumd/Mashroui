@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ProjectStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\Scopes\TermScope;
+use App\Models\TeamMember;
 use Illuminate\Http\Request;
 
 class AiProjectExportController extends Controller
@@ -34,5 +36,28 @@ class AiProjectExportController extends Controller
             ]);
 
         return response()->json($projects);
+    }
+
+    public function studentTeam(Request $request)
+    {
+        $data = $request->validate([
+            'student_id' => ['required', 'integer'],
+        ]);
+
+        $team = TeamMember::whereHas('team')
+            ->where('student_id', $data['student_id'])
+            ->with('team.project')
+            ->first()?->team;
+
+        $project = $team?->project;
+
+        return response()->json([
+            'student_id' => (int) $data['student_id'],
+            'has_team' => (bool) $team,
+            'team_id' => $team?->id,
+            'team_name' => $team?->name,
+            'project_status' => $project?->status->value,
+            'project_approved' => $project ? $project->status !== ProjectStatusEnum::Proposed : null,
+        ]);
     }
 }
