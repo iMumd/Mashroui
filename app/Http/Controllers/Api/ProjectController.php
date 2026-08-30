@@ -73,7 +73,7 @@ class ProjectController extends Controller
             ->when($data['department_id'] ?? null, fn ($q, $id) => $q->where('department_id', $id))
             ->when($data['degree'] ?? null, fn ($q, $degree) => $q->whereHas('specialization', fn ($sq) => $sq->where('degree', $degree)))
             ->orderByDesc('completed_at')
-            ->paginate(9)
+            ->paginate(6)
             ->withQueryString();
 
         $projects->getCollection()->transform(fn (Project $project) => $this->publicProject($project));
