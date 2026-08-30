@@ -3,6 +3,7 @@
 use App\Http\Middleware\CheckRestriction;
 use App\Http\Middleware\EnsureTerm;
 use App\Http\Middleware\ForcePasswordChange;
+use App\Http\Middleware\VerifyAiApiKey;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'restriction' => CheckRestriction::class,
             'force-password-change' => ForcePasswordChange::class,
             'term' => EnsureTerm::class,
+            'ai-key' => VerifyAiApiKey::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

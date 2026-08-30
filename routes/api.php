@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AcademicTermController;
+use App\Http\Controllers\Api\AiProjectExportController;
 use App\Http\Controllers\Api\AiProjectSourceController;
 use App\Http\Controllers\Api\AssistantController;
 use App\Http\Controllers\Api\AuthController;
@@ -41,6 +42,11 @@ Route::get('/projects/public-archive', [ProjectController::class, 'publicArchive
 Route::get('/projects/public-archive/{project}', [ProjectController::class, 'publicArchiveShow'])->middleware('throttle:public');
 Route::get('/departments/public', [DepartmentController::class, 'publicIndex'])->middleware('throttle:public');
 Route::get('/stats', [StatsController::class, 'index'])->middleware('throttle:public');
+
+// نقطة وصول خارجية محمية بمفتاح ثابت — للدكتور/نموذج الـ AI الخاص فيه، عشان يقارن نسبة تشابه
+// المقترحات الجديدة بالمشاريع الموجودة. مفتاح Bearer ثابت بدل جلسة مستخدم لأنه استهلاك خدمة-لخدمة.
+Route::get('/external/ai/projects', [AiProjectExportController::class, 'index'])
+    ->middleware(['ai-key', 'throttle:public']);
 
 Route::get('/committee/dashboard-stats', [CommitteeDashboardController::class, 'index'])
     ->middleware(['auth:sanctum', 'throttle:api', 'term']);

@@ -40,4 +40,8 @@ return [
         'model' => env('FIKRA_MODEL', 'fikra'),
     ],
 
+    'ai_api' => [
+        'key' => env('AI_API_KEY'),
+    ],
+
 ];
