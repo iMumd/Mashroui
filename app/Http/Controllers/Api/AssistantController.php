@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\AssistantService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Throwable;
 
 class AssistantController extends Controller
@@ -14,13 +13,10 @@ class AssistantController extends Controller
     {
         $data = $request->validate([
             'message' => ['required', 'string', 'max:4000'],
-            'history' => ['sometimes', 'array', 'max:30'],
-            'history.*.role' => ['required_with:history', Rule::in(['user', 'assistant'])],
-            'history.*.content' => ['required_with:history', 'string', 'max:4000'],
         ]);
 
         try {
-            $reply = $assistant->chat($data['history'] ?? [], $data['message']);
+            $reply = $assistant->chat($request->user()->id, $data['message']);
         } catch (Throwable $e) {
             report($e);
 

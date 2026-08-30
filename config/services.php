@@ -44,4 +44,8 @@ return [
         'key' => env('AI_API_KEY'),
     ],
 
+    'gp_chat' => [
+        'url' => env('GP_CHAT_URL', 'https://n8n-dev.makeflow.tech/webhook/gp-chat'),
+    ],
+
 ];
