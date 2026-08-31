@@ -95,7 +95,7 @@ class ProjectController extends Controller
     /** العلاقات اللازمة لعرض عام آمن — بدون بيانات تواصل شخصية (إيميل/رقم جامعي) */
     private function publicRelations(): array
     {
-        return ['department:id,name', 'specialization:id,name,degree', 'supervisor:id,name', 'team:id,name', 'team.members.student:id,name', 'academicTerm:id,name'];
+        return ['department:id,name', 'specialization:id,name,degree', 'supervisor:id,name', 'team:id,name', 'team.members.student:id,name', 'academicTerm:id,name', 'finalReports:id,project_id,video_url,created_at'];
     }
 
     private function publicProject(Project $project): array
@@ -115,6 +115,7 @@ class ProjectController extends Controller
             'members' => $project->team?->members->pluck('student.name')->filter()->values() ?? [],
             'term' => $project->academicTerm?->name,
             'completed_at' => $project->completed_at?->toDateString(),
+            'video_url' => $project->finalReports->whereNotNull('video_url')->sortByDesc('created_at')->first()?->video_url,
         ];
     }
 
