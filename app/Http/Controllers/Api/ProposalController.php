@@ -59,7 +59,7 @@ class ProposalController extends Controller
             'problems' => ['nullable', 'string'],
             'solutions' => ['nullable', 'string'],
             'features_value' => ['nullable', 'string'],
-            'pdf' => ['required', 'file', 'mimes:pdf,doc,docx,ppt,pptx', 'max:10240'],
+            'pdf' => ['required', 'file', 'mimes:pdf,doc,docx,ppt,pptx', 'max:102400'],
         ]);
 
         $proposal = $service->submit($data, $request->file('pdf'), $request->user());
@@ -77,7 +77,7 @@ class ProposalController extends Controller
             'problems' => ['nullable', 'string'],
             'solutions' => ['nullable', 'string'],
             'features_value' => ['nullable', 'string'],
-            'pdf' => ['nullable', 'file', 'mimes:pdf,doc,docx,ppt,pptx', 'max:10240'],
+            'pdf' => ['nullable', 'file', 'mimes:pdf,doc,docx,ppt,pptx', 'max:102400'],
         ]);
 
         $proposal = $service->resubmit($proposal, $data, $request->file('pdf'));

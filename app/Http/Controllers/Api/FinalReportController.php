@@ -48,7 +48,7 @@ class FinalReportController extends Controller
         Gate::authorize('create', FinalReport::class);
 
         $data = $request->validate([
-            'file' => ['required', 'file', 'mimes:pdf', 'max:20480'],
+            'file' => ['required', 'file', 'mimes:pdf', 'max:102400'],
             'video_url' => ['nullable', 'url', 'max:255'],
         ]);
 
