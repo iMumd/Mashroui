@@ -144,6 +144,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::post('/teams/import/preview', [TeamImportController::class, 'preview']);
             Route::post('/teams/import/confirm', [TeamImportController::class, 'confirm']);
 
+            Route::get('/proposals', [ProposalController::class, 'index']);
             Route::post('/proposals', [ProposalController::class, 'store']);
             Route::get('/proposals/{proposal}', [ProposalController::class, 'show']);
             Route::get('/proposals/{proposal}/history', [ProposalController::class, 'history']);

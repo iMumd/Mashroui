@@ -79,6 +79,11 @@ class UserController extends Controller
                 ->orWhere('email', 'like', $term));
         }
 
+        // للمشرفين: عدد مهام فرقهم وآخر نشاط (آخر استخدام لجلسة الدخول)
+        if ($data['role'] === RoleEnum::Supervisor->value) {
+            $query->withCount('supervisedTasks')->withMax('tokens', 'last_used_at');
+        }
+
         $users = $query->orderBy('name')->get();
 
         return UserResource::collection($users);
