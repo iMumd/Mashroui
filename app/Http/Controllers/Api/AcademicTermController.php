@@ -61,7 +61,7 @@ class AcademicTermController extends Controller
         abort_if(
             $academicTerm->teams()->exists() || $academicTerm->projects()->exists() || $academicTerm->discussions()->exists(),
             422,
-            'لا يمكن حذف الفصل الدراسي لوجود فرق أو مشاريع أو مناقشات مرتبطة به.'
+            'لا يمكن حذف السنة الدراسية لوجود فرق أو مشاريع أو مناقشات مرتبطة بها.'
         );
 
         AuditLog::create([
