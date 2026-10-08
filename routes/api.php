@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AcademicTermController;
+use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AiProjectExportController;
 use App\Http\Controllers\Api\AiProjectSourceController;
 use App\Http\Controllers\Api\AssistantController;
@@ -17,22 +18,28 @@ use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\MagicLoginController;
 use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\MessageDeliveryController;
+use App\Http\Controllers\Api\MessageTemplateController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProgressController;
 use App\Http\Controllers\Api\ProgressExportController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ProjectFileController;
 use App\Http\Controllers\Api\ProposalController;
 use App\Http\Controllers\Api\SpecializationController;
 use App\Http\Controllers\Api\StatsController;
+use App\Http\Controllers\Api\EvaluationController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TaskFileController;
 use App\Http\Controllers\Api\TaskNoteController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\TeamExportController;
 use App\Http\Controllers\Api\TeamImportController;
+use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserRestrictionController;
+use App\Http\Controllers\Api\WhatsappSendController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
@@ -71,7 +78,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::middleware('force-password-change')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::get('/me/abilities', [AuthController::class, 'abilities']);
-        Route::post('/users', [UserController::class, 'store']);
+        Route::post('/users', [UserController::class, 'store'])->middleware('term');
         Route::get('/users/trashed', [UserController::class, 'trashed']);
         Route::patch('/users/{user}', [UserController::class, 'update']);
         Route::patch('/users/{user}/status', [UserController::class, 'updateStatus']);
@@ -81,6 +88,12 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
 
         Route::post('/email/send', [EmailRelayController::class, 'send']);
+        Route::post('/whatsapp/send', [WhatsappSendController::class, 'send']);
+
+        Route::get('/message-templates', [MessageTemplateController::class, 'index']);
+        Route::post('/message-templates', [MessageTemplateController::class, 'store']);
+        Route::put('/message-templates/{messageTemplate}', [MessageTemplateController::class, 'update']);
+        Route::delete('/message-templates/{messageTemplate}', [MessageTemplateController::class, 'destroy']);
 
         Route::apiResource('departments', DepartmentController::class);
         Route::apiResource('specializations', SpecializationController::class);
@@ -104,6 +117,14 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
         Route::post('/assistant/chat', [AssistantController::class, 'chat'])->middleware('throttle:assistant');
 
+        // نظام الدعم (التذاكر) — بديل دعم الواتساب
+        Route::get('/tickets', [TicketController::class, 'index']);
+        Route::post('/tickets', [TicketController::class, 'store']);
+        Route::get('/tickets/{ticket}', [TicketController::class, 'show']);
+        Route::post('/tickets/{ticket}/replies', [TicketController::class, 'reply']);
+        Route::post('/tickets/{ticket}/close', [TicketController::class, 'close']);
+        Route::post('/tickets/{ticket}/reopen', [TicketController::class, 'reopen']);
+
         Route::middleware('term')->group(function () {
             Route::get('/users', [UserController::class, 'index']);
 
@@ -122,6 +143,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
             Route::post('/proposals', [ProposalController::class, 'store']);
             Route::get('/proposals/{proposal}', [ProposalController::class, 'show']);
+            Route::get('/proposals/{proposal}/history', [ProposalController::class, 'history']);
             Route::get('/proposals/{proposal}/download', [ProposalController::class, 'download']);
             Route::get('/proposals/{proposal}/download-link', [ProposalController::class, 'downloadLink']);
             Route::put('/proposals/{proposal}', [ProposalController::class, 'update']);
@@ -146,6 +168,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::get('/meetings/{meeting}', [MeetingController::class, 'show']);
             Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy']);
 
+            Route::get('/supervisors/{user}/profile', [ProfileController::class, 'supervisor']);
+            Route::get('/students/{user}/profile', [ProfileController::class, 'student']);
+            Route::get('/reports/supervisors', [ReportController::class, 'supervisors']);
+
             Route::get('/progress', [ProgressController::class, 'index']);
             Route::get('/progress/export', [ProgressExportController::class, 'export']);
 
@@ -156,6 +182,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::post('/tasks/{task}/restore', [TaskController::class, 'restore']);
             Route::delete('/tasks/{task}/force', [TaskController::class, 'forceDelete']);
             Route::get('/tasks/{task}', [TaskController::class, 'show']);
+            Route::get('/tasks/{task}/activity', [TaskController::class, 'activity']);
             Route::put('/tasks/{task}', [TaskController::class, 'update']);
             Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
             Route::patch('/tasks/{task}/status', [TaskController::class, 'changeStatus']);
@@ -166,7 +193,16 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::get('/tasks/{task}/notes', [TaskNoteController::class, 'index']);
             Route::post('/tasks/{task}/notes', [TaskNoteController::class, 'store']);
 
+            Route::get('/evaluations', [EvaluationController::class, 'index']);
+
+            Route::get('/announcements', [AnnouncementController::class, 'inbox']);
+            Route::post('/announcements/supervisor', [AnnouncementController::class, 'storeForSupervisor']);
+            Route::get('/teams/{team}/announcements', [AnnouncementController::class, 'indexForTeam']);
+            Route::post('/teams/{team}/announcements', [AnnouncementController::class, 'storeForTeam']);
+            Route::put('/teams/{team}/students/{student}/evaluation', [EvaluationController::class, 'upsert']);
+
             Route::get('/discussions/export', [DiscussionExportController::class, 'export']);
+            Route::get('/discussions/import/template', [DiscussionImportController::class, 'template']);
             Route::post('/discussions/import/preview', [DiscussionImportController::class, 'preview']);
             Route::post('/discussions/import/confirm', [DiscussionImportController::class, 'confirm']);
             Route::apiResource('discussions', DiscussionController::class)->except(['create', 'edit']);
