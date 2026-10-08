@@ -7,20 +7,19 @@ use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\Scopes\TermScope;
+use App\Services\ProjectService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 class ProjectController extends Controller
 {
-    // GET /projects/archive — سجلّ المشاريع المكتملة عبر كل الفصول الدراسية (لجنة: الكل، مشرف: مشاريعه فقط)
+    // GET /projects/archive — سجلّ المشاريع المكتملة ضمن السنة الدراسية الحالية (لجنة: الكل، مشرف: مشاريعه فقط)
     public function archive(Request $request)
     {
         Gate::authorize('viewAny', Project::class);
 
-        $query = Project::withoutGlobalScope(TermScope::class)
-            ->with(['team:id,name', 'department:id,name', 'specialization:id,name', 'proposal', 'finalReports'])
+        $query = Project::with(['team:id,name', 'department:id,name', 'specialization:id,name', 'proposal', 'finalReports'])
             ->where('status', ProjectStatusEnum::Completed)
             ->orderByDesc('completed_at');
 
@@ -134,19 +133,10 @@ class ProjectController extends Controller
         return response()->json($project);
     }
 
-    public function complete(Request $request, Project $project)
+    public function complete(Request $request, Project $project, ProjectService $service)
     {
         Gate::authorize('update', $project);
 
-        if ($project->status !== ProjectStatusEnum::InProgress) {
-            throw ValidationException::withMessages(['status' => 'المشروع لازم يكون قيد التنفيذ حتى يُنهى.']);
-        }
-
-        $project->update([
-            'status' => ProjectStatusEnum::Completed,
-            'completed_at' => now(),
-        ]);
-
-        return response()->json($project);
+        return response()->json($service->complete($project));
     }
 }

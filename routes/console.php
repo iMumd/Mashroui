@@ -8,4 +8,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('reminders:dispatch-meetings')->cron('0 9 */10 * *');
+Schedule::command('reminders:dispatch-meetings')->everyFifteenMinutes();
+Schedule::command('projects:auto-complete')->everyFifteenMinutes();
