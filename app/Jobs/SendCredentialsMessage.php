@@ -7,9 +7,12 @@ use App\Enums\NotificationChannelEnum;
 use App\Models\InviteLink;
 use App\Models\MessageDelivery;
 use App\Models\User;
+use App\Services\WhatsappService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Mail;
+use RuntimeException;
+use Throwable;
 
 class SendCredentialsMessage implements ShouldQueue
 {
@@ -17,29 +20,27 @@ class SendCredentialsMessage implements ShouldQueue
 
     public function __construct(public MessageDelivery $delivery, public InviteLink $invite) {}
 
-    public function handle(): void
+    public function handle(WhatsappService $whatsapp): void
     {
         try {
-            $link = config('app.url')."/invite/{$this->invite->token}";
+            $link = config('app.frontend_url')."/reset-password?token={$this->invite->token}";
             $user = $this->delivery->user;
-            $message = "مرحباً {$user->name}، رابط تفعيل حسابك: {$link}";
-            $waLink = null;
+            $message = "مرحباً {$user->name}، رابط تفعيل حسابك على منصة مسار: {$link}";
 
             match ($this->delivery->channel) {
                 NotificationChannelEnum::Email => Mail::raw(
                     $message,
-                    fn ($mail) => $mail->to($user->email)->subject('دعوة لتفعيل حسابك - مشروعي')
+                    fn ($mail) => $mail->to($user->email)->subject('دعوة لتفعيل حسابك - مسار')
                 ),
-                NotificationChannelEnum::Whatsapp => $waLink = $this->buildWhatsappLink($user, $message),
+                NotificationChannelEnum::Whatsapp => $this->sendWhatsapp($whatsapp, $user, $message),
             };
 
             $this->delivery->update([
                 'status' => DeliveryStatusEnum::Sent,
-                'link' => $waLink,
                 'sent_at' => now(),
                 'error' => null,
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->delivery->update([
                 'status' => DeliveryStatusEnum::Failed,
                 'error' => $e->getMessage(),
@@ -48,12 +49,12 @@ class SendCredentialsMessage implements ShouldQueue
         }
     }
 
-    private function buildWhatsappLink(User $user, string $message): string
+    private function sendWhatsapp(WhatsappService $whatsapp, User $user, string $message): void
     {
         if (! $user->whatsapp) {
-            throw new \RuntimeException('لا يوجد رقم واتساب مسجّل لهذا المستخدم.');
+            throw new RuntimeException('لا يوجد رقم واتساب مسجّل لهذا المستخدم.');
         }
 
-        return "https://wa.me/{$user->whatsapp}?text=".urlencode($message);
+        $whatsapp->send($user->whatsapp, $message);
     }
 }

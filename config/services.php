@@ -48,4 +48,9 @@ return [
         'url' => env('GP_CHAT_URL', 'https://n8n-dev.makeflow.tech/webhook/gp-chat'),
     ],
 
+    'whatsapp' => [
+        'url' => env('WHATSAPP_WEBHOOK_URL'),
+        'token' => env('WHATSAPP_WEBHOOK_TOKEN'),
+    ],
+
 ];
