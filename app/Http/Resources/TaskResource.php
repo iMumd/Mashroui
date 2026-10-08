@@ -15,6 +15,8 @@ class TaskResource extends JsonResource
             'title' => $this->title,
             'description' => $this->description,
             'status' => $this->status,
+            'due_date' => $this->due_date?->toDateString(),
+            'assignees' => UserResource::collection($this->whenLoaded('assignees')),
             'created_by' => $this->createdBy ? new UserResource($this->createdBy) : null,
             'files' => TaskFileResource::collection($this->whenLoaded('files')),
             'notes' => TaskNoteResource::collection($this->whenLoaded('notes')),

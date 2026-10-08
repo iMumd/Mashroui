@@ -6,10 +6,11 @@ use App\Enums\TaskStatusEnum;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['team_id', 'title', 'description', 'status', 'created_by'])]
+#[Fillable(['team_id', 'title', 'description', 'status', 'due_date', 'created_by'])]
 class Task extends Model
 {
     use SoftDeletes;
@@ -18,6 +19,7 @@ class Task extends Model
     {
         return [
             'status' => TaskStatusEnum::class,
+            'due_date' => 'date',
         ];
     }
 
@@ -29,6 +31,11 @@ class Task extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function assignees(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'task_assignee')->withTimestamps();
     }
 
     public function files(): HasMany

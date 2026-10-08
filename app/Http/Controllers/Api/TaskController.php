@@ -20,7 +20,7 @@ class TaskController extends Controller
     {
         Gate::authorize('viewAny', [Task::class, $team]);
 
-        return TaskResource::collection($team->tasks()->with('createdBy')->get());
+        return TaskResource::collection($team->tasks()->with('createdBy', 'assignees')->get());
     }
 
     public function trashed(Team $team)
@@ -28,7 +28,7 @@ class TaskController extends Controller
         Gate::authorize('viewAny', [Task::class, $team]);
 
         return TaskResource::collection(
-            $team->tasks()->onlyTrashed()->with('createdBy')->get()
+            $team->tasks()->onlyTrashed()->with('createdBy', 'assignees')->get()
         );
     }
 
@@ -48,7 +48,7 @@ class TaskController extends Controller
             'meta' => ['team_id' => $task->team_id, 'title' => $task->title],
         ]);
 
-        return new TaskResource($task->load('createdBy'));
+        return new TaskResource($task->load('createdBy', 'assignees'));
     }
 
     public function forceDelete(Request $request, int $task)
@@ -77,34 +77,72 @@ class TaskController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string'],
+            'due_date' => ['nullable', 'date'],
+            'assignee_ids' => ['nullable', 'array'],
+            'assignee_ids.*' => ['integer', 'exists:users,id'],
         ]);
 
         $data['team_id'] = $team->id;
 
         $task = $service->create($data, $request->user());
 
-        return (new TaskResource($task->load('createdBy')))->response()->setStatusCode(201);
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'create',
+            'entity' => 'task',
+            'entity_id' => $task->id,
+            'meta' => ['team_id' => $task->team_id, 'title' => $task->title],
+        ]);
+
+        return (new TaskResource($task->load('createdBy', 'assignees')))->response()->setStatusCode(201);
     }
 
     public function show(Task $task)
     {
         Gate::authorize('view', $task);
 
-        return new TaskResource($task->load('createdBy', 'files.uploadedBy', 'notes.user'));
+        return new TaskResource($task->load('createdBy', 'assignees', 'files.uploadedBy', 'notes.user'));
     }
 
-    public function update(Request $request, Task $task)
+    public function update(Request $request, Task $task, TaskService $service)
     {
         Gate::authorize('update', $task);
 
         $data = $request->validate([
             'title' => ['sometimes', 'required', 'string', 'max:200'],
             'description' => ['nullable', 'string'],
+            'due_date' => ['nullable', 'date'],
+            'assignee_ids' => ['sometimes', 'array'],
+            'assignee_ids.*' => ['integer', 'exists:users,id'],
         ]);
 
-        $task->update($data);
+        $task->update(array_intersect_key($data, array_flip(['title', 'description', 'due_date'])));
 
-        return new TaskResource($task->load('createdBy'));
+        if (array_key_exists('assignee_ids', $data)) {
+            $service->syncAssignees($task, $data['assignee_ids'] ?? []);
+        }
+
+        return new TaskResource($task->load('createdBy', 'assignees'));
+    }
+
+    // سجل حركة المهمة: الإنشاء وتغييرات الحالة والاسترجاع/الحذف، بترتيب زمني
+    public function activity(Task $task)
+    {
+        Gate::authorize('view', $task);
+
+        $entries = AuditLog::where('entity', 'task')
+            ->where('entity_id', $task->id)
+            ->with('user:id,name')
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn (AuditLog $log) => [
+                'action' => $log->action,
+                'meta' => $log->meta,
+                'user' => $log->user ? ['id' => $log->user->id, 'name' => $log->user->name] : null,
+                'created_at' => $log->created_at,
+            ]);
+
+        return response()->json($entries);
     }
 
     public function destroy(Request $request, Task $task)
@@ -134,7 +172,7 @@ class TaskController extends Controller
 
         $task = $service->changeStatus($task, TaskStatusEnum::from($data['status']), $request->user());
 
-        return new TaskResource($task->load('createdBy'));
+        return new TaskResource($task->load('createdBy', 'assignees'));
     }
 
     public function progress(Team $team, ProgressService $service)

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\RoleEnum;
 use App\Enums\TaskStatusEnum;
+use App\Models\Evaluation;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -19,7 +20,34 @@ class ProgressService
             'total' => $total,
             'done' => $done,
             'percentage' => $total === 0 ? 0.0 : round($done / $total * 100, 1),
+            'students' => $this->studentsForTeam($team),
         ];
+    }
+
+    /** تقدّم كل طالب بالفريق بناءً على المهام المكلّف فيها، مع درجة التقييم إن وجدت */
+    public function studentsForTeam(Team $team): array
+    {
+        $evaluations = Evaluation::where('team_id', $team->id)->get()->keyBy('student_id');
+
+        return $team->members()->with('student')->get()->map(function ($member) use ($team, $evaluations) {
+            $assigned = $team->tasks()->whereHas('assignees', fn ($q) => $q->whereKey($member->student_id));
+            $total = (clone $assigned)->count();
+            $done = (clone $assigned)->where('status', TaskStatusEnum::Done)->count();
+            $evaluation = $evaluations->get($member->student_id);
+
+            return [
+                'id' => $member->student_id,
+                'name' => $member->student?->name,
+                'is_leader' => $member->is_leader,
+                'total' => $total,
+                'done' => $done,
+                'percentage' => $total === 0 ? 0.0 : round($done / $total * 100, 1),
+                'evaluation' => $evaluation ? [
+                    'score' => $evaluation->score,
+                    'notes' => $evaluation->notes,
+                ] : null,
+            ];
+        })->values()->all();
     }
 
     /** نظرة عامة على تقدّم كل الفرق — لجنة: الكل، مشرف: فرقه فقط */
