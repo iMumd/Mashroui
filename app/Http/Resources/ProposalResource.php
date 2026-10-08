@@ -20,6 +20,7 @@ class ProposalResource extends JsonResource
             'pdf_path' => $this->pdf_path,
             'status' => $this->status,
             'rejection_reason' => $this->rejection_reason,
+            'rejection_count' => $this->rejection_count,
             'project' => $this->whenLoaded('project'),
             'submitted_by' => $this->submittedBy ? new UserResource($this->submittedBy) : null,
             'reviewed_by' => $this->reviewedBy ? new UserResource($this->reviewedBy) : null,

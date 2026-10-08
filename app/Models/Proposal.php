@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'pdf_path',
     'status',
     'rejection_reason',
+    'rejection_count',
     'submitted_by',
     'reviewed_by',
 ])]

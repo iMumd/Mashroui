@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProposalResource;
+use App\Models\AuditLog;
 use App\Models\Proposal;
 use App\Services\ProposalService;
 use Illuminate\Http\Request;
@@ -18,6 +19,27 @@ class ProposalController extends Controller
         Gate::authorize('view', $proposal);
 
         return new ProposalResource($proposal->load('project', 'submittedBy', 'reviewedBy'));
+    }
+
+    // سجل المراجعات: كل محاولة تقديم/إعادة تقديم مع سبب الرفض إن وُجد، بترتيب زمني
+    public function history(Proposal $proposal)
+    {
+        Gate::authorize('view', $proposal);
+
+        $entries = AuditLog::where('entity', 'proposal')
+            ->where('entity_id', $proposal->id)
+            ->whereIn('action', ['submit', 'resubmit', 'reject'])
+            ->with('user:id,name')
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn (AuditLog $log) => [
+                'action' => $log->action,
+                'meta' => $log->meta,
+                'user' => $log->user ? ['id' => $log->user->id, 'name' => $log->user->name] : null,
+                'created_at' => $log->created_at,
+            ]);
+
+        return response()->json($entries);
     }
 
     public function download(Proposal $proposal)

@@ -16,6 +16,9 @@ use Illuminate\Validation\ValidationException;
 
 class ProposalService
 {
+    /** الحد الأقصى لعدد مرات الرفض المسموحة قبل منع إعادة التقديم (تقديم أولي + محاولتا إعادة تقديم) */
+    private const MAX_REJECTIONS = 3;
+
     public function submit(array $data, UploadedFile $pdf, User $leader): Proposal
     {
         $project = Project::findOrFail($data['project_id']);
@@ -30,7 +33,7 @@ class ProposalService
 
         $path = Storage::putFile('proposals', $pdf);
 
-        return Proposal::create([
+        $proposal = Proposal::create([
             'project_id' => $project->id,
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
@@ -41,6 +44,10 @@ class ProposalService
             'status' => ProposalStatusEnum::Pending,
             'submitted_by' => $leader->id,
         ]);
+
+        $this->logSubmission($proposal, $leader, 1);
+
+        return $proposal->fresh();
     }
 
     public function resubmit(Proposal $proposal, array $data, ?UploadedFile $pdf): Proposal
@@ -49,7 +56,12 @@ class ProposalService
             throw ValidationException::withMessages(['status' => 'المقترح معتمد أصلاً، ما بينعدّل.']);
         }
 
+        if ($proposal->rejection_count >= self::MAX_REJECTIONS) {
+            throw ValidationException::withMessages(['status' => 'تم استنفاد جميع محاولات إعادة التقديم المسموحة. يرجى التواصل مع لجنة الإشراف.']);
+        }
+
         $path = $pdf ? Storage::putFile('proposals', $pdf) : $proposal->pdf_path;
+        $attempt = $proposal->rejection_count + 1;
 
         $proposal->update([
             'name' => $data['name'],
@@ -63,7 +75,34 @@ class ProposalService
             'reviewed_by' => null,
         ]);
 
-        return $proposal->fresh();
+        $proposal = $proposal->fresh();
+
+        $this->logSubmission($proposal, $proposal->submittedBy, $attempt);
+
+        return $proposal;
+    }
+
+    /**
+     * التقديم بيعدّل نفس السطر (name/description/...) بدل ما يحتفظ بنسخة قديمة، فبدون هذا اللوج
+     * ما في طريقة نعرض "شو قدّم أول مرة" بعد ما ينعدّل — بنسجّل نسخة (snapshot) من كل محاولة تقديم
+     * بجدول AuditLog عشان يبنى منها سجل مراجعات كامل (كل محاولة + سبب رفضها إن وجد).
+     */
+    private function logSubmission(Proposal $proposal, User $submitter, int $attempt): void
+    {
+        AuditLog::create([
+            'user_id' => $submitter->id,
+            'action' => $attempt === 1 ? 'submit' : 'resubmit',
+            'entity' => 'proposal',
+            'entity_id' => $proposal->id,
+            'meta' => [
+                'attempt' => $attempt,
+                'name' => $proposal->name,
+                'description' => $proposal->description,
+                'problems' => $proposal->problems,
+                'solutions' => $proposal->solutions,
+                'features_value' => $proposal->features_value,
+            ],
+        ]);
     }
 
     public function approve(Proposal $proposal, User $reviewer): Proposal
@@ -103,6 +142,7 @@ class ProposalService
             'status' => ProposalStatusEnum::Rejected,
             'reviewed_by' => $reviewer->id,
             'rejection_reason' => $reason,
+            'rejection_count' => $proposal->rejection_count + 1,
         ]);
 
         $proposal = $proposal->fresh();
@@ -112,7 +152,7 @@ class ProposalService
             'action' => 'reject',
             'entity' => 'proposal',
             'entity_id' => $proposal->id,
-            'meta' => ['reason' => $reason],
+            'meta' => ['reason' => $reason, 'rejection_count' => $proposal->rejection_count],
         ]);
 
         ProposalReviewed::dispatch($proposal);
