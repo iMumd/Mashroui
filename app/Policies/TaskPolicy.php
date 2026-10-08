@@ -29,7 +29,7 @@ class TaskPolicy
     public function create(User $user): bool
     {
         return $this->accessControl->can($user, 'tasks') === AccessLevelEnum::Full
-            && in_array($user->role, [RoleEnum::Supervisor, RoleEnum::TeamLeader], true);
+            && ($user->role === RoleEnum::Supervisor || $this->teamMembership->leadsAnyTeam($user));
     }
 
     public function update(User $user, Task $task): bool

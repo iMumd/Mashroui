@@ -26,14 +26,20 @@ class ProposalPolicy
 
     public function create(User $user): bool
     {
+        // القيادة صلاحية داخل الفريق (leader_id) لا دور مستقل — أي طالب يقود فريقًا يقدر يقدّم المقترح
         return $this->accessControl->can($user, 'proposals') === AccessLevelEnum::Full
-            && $user->role === RoleEnum::TeamLeader;
+            && $this->teamMembership->leadsAnyTeam($user);
     }
 
     public function update(User $user, Proposal $proposal): bool
     {
-        return $this->accessControl->can($user, 'proposals') === AccessLevelEnum::Full
-            && $user->id === $proposal->submitted_by;
+        if ($this->accessControl->can($user, 'proposals') !== AccessLevelEnum::Full) {
+            return false;
+        }
+
+        // من قدّم المقترح أو القائد الحالي للفريق (لو انتقلت القيادة بعد الرفض) يقدر يعيد التقديم
+        return $user->id === $proposal->submitted_by
+            || $user->id === $proposal->project->team->leader_id;
     }
 
     public function review(User $user, Proposal $proposal): bool

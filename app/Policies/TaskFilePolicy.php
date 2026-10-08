@@ -29,6 +29,6 @@ class TaskFilePolicy
     public function create(User $user): bool
     {
         return $this->accessControl->can($user, 'tasks') === AccessLevelEnum::Full
-            && in_array($user->role, [RoleEnum::Student, RoleEnum::TeamLeader], true);
+            && $user->role === RoleEnum::Student;
     }
 }

@@ -29,6 +29,6 @@ class TaskNotePolicy
     public function create(User $user): bool
     {
         return $this->accessControl->can($user, 'tasks') === AccessLevelEnum::Full
-            && in_array($user->role, [RoleEnum::Supervisor, RoleEnum::TeamLeader, RoleEnum::Student], true);
+            && in_array($user->role, [RoleEnum::Supervisor, RoleEnum::Student], true);
     }
 }

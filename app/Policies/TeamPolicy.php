@@ -34,6 +34,15 @@ class TeamPolicy
         return $this->update($user, $team);
     }
 
+    /**
+     * تغيير قائد الفريق: اللجنة/المشرف المالك، أو القائد الحالي نفسه — فاختيار القائد شأن
+     * داخلي بين الطلاب، يسلّمه القائد الحالي لعضو آخر دون الحاجة لتدخّل إداري.
+     */
+    public function manageLeader(User $user, Team $team): bool
+    {
+        return $this->update($user, $team) || $team->leader_id === $user->id;
+    }
+
     public function restore(User $user, Team $team): bool
     {
         return $this->update($user, $team);

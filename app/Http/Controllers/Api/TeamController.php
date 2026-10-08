@@ -131,7 +131,7 @@ class TeamController extends Controller
 
     public function updateLeader(Request $request, Team $team, TeamService $teamService)
     {
-        Gate::authorize('update', $team);
+        Gate::authorize('manageLeader', $team);
 
         $data = $request->validate([
             'student_id' => ['required', 'integer'],

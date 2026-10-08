@@ -20,4 +20,16 @@ class TeamMembership
 
         return $team->members()->where('student_id', $user->id)->exists();
     }
+
+    /** هل المستخدم قائد لأي فريق في الفصل الحالي — القيادة صلاحية تُمنح داخل الفريق، لا دور مستقل */
+    public function leadsAnyTeam(User $user): bool
+    {
+        return Team::where('leader_id', $user->id)->exists();
+    }
+
+    /** هل المستخدم هو القائد الحالي لهذا الفريق تحديدًا */
+    public function isLeaderOf(User $user, Team $team): bool
+    {
+        return $team->leader_id !== null && $team->leader_id === $user->id;
+    }
 }

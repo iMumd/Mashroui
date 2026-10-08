@@ -29,7 +29,7 @@ class MeetingPolicy
     public function create(User $user): bool
     {
         return $this->accessControl->can($user, 'meetings') === AccessLevelEnum::Full
-            && in_array($user->role, [RoleEnum::Supervisor, RoleEnum::TeamLeader], true);
+            && ($user->role === RoleEnum::Supervisor || $this->teamMembership->leadsAnyTeam($user));
     }
 
     public function update(User $user, Meeting $meeting): bool

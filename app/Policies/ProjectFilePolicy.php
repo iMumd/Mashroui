@@ -29,6 +29,6 @@ class ProjectFilePolicy
     public function create(User $user): bool
     {
         return $this->accessControl->can($user, 'projects') === AccessLevelEnum::Full
-            && $user->role === RoleEnum::TeamLeader;
+            && $this->teamMembership->leadsAnyTeam($user);
     }
 }

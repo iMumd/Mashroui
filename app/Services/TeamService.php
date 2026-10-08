@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\ProjectStatusEnum;
-use App\Enums\RoleEnum;
 use App\Models\Project;
 use App\Models\Specialization;
 use App\Models\Team;
@@ -50,8 +49,6 @@ class TeamService
                     'is_leader' => $studentId === $data['leader_id'],
                 ]);
             }
-
-            User::whereKey($data['leader_id'])->update(['role' => RoleEnum::TeamLeader]);
 
             $departmentId = Specialization::whereKey($data['specialization_id'])->value('department_id');
 
@@ -122,17 +119,10 @@ class TeamService
         }
 
         return DB::transaction(function () use ($team, $member, $studentId) {
-            $previousLeaderId = $team->leader_id;
 
             $team->members()->update(['is_leader' => false]);
             $member->update(['is_leader' => true]);
             $team->update(['leader_id' => $studentId]);
-
-            User::whereKey($studentId)->update(['role' => RoleEnum::TeamLeader]);
-
-            if ($previousLeaderId && $previousLeaderId !== $studentId) {
-                User::whereKey($previousLeaderId)->update(['role' => RoleEnum::Student]);
-            }
 
             return $team->load('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports');
         });
