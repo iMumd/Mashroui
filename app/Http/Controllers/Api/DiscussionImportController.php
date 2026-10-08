@@ -9,9 +9,29 @@ use App\Support\CurrentTerm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class DiscussionImportController extends Controller
 {
+    public function template(DiscussionImportService $service, CurrentTerm $currentTerm)
+    {
+        Gate::authorize('create', Discussion::class);
+
+        $termId = $currentTerm->get();
+
+        if (! $termId) {
+            throw ValidationException::withMessages(['term_id' => 'لا يوجد فصل دراسي محدد.']);
+        }
+
+        $spreadsheet = $service->buildTemplate($termId);
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            (new Xlsx($spreadsheet))->save('php://output');
+        }, 'قالب-استيراد-مواعيد-المناقشات.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
     public function preview(Request $request, DiscussionImportService $service, CurrentTerm $currentTerm)
     {
         Gate::authorize('create', Discussion::class);
@@ -37,12 +57,15 @@ class DiscussionImportController extends Controller
 
         $data = $request->validate([
             'rows' => ['required', 'array', 'min:1'],
-            'rows.*.team_name' => ['required', 'string'],
+            'rows.*.team_id' => ['nullable', 'string'],
+            'rows.*.team_name' => ['nullable', 'string'],
             'rows.*.place' => ['required', 'string'],
             'rows.*.discussion_date' => ['required', 'string'],
             'rows.*.discussion_time' => ['required', 'string'],
             'rows.*.committee' => ['required', 'string'],
             'rows.*.whatsapp' => ['nullable', 'string'],
+            'rows.*.project_id' => ['required', 'integer'],
+            'rows.*.supervisor_id' => ['required', 'integer'],
         ]);
 
         $termId = $currentTerm->get();

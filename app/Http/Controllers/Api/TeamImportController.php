@@ -30,12 +30,16 @@ class TeamImportController extends Controller
         Gate::authorize('create', Team::class);
 
         $data = $request->validate([
-            'specialization_id' => ['required', 'exists:specializations,id'],
             'rows' => ['required', 'array', 'min:1'],
             'rows.*.name' => ['required', 'string'],
             'rows.*.email' => ['required', 'string'],
             'rows.*.university_number' => ['required', 'string'],
             'rows.*.whatsapp' => ['required', 'string'],
+            'rows.*.specialization' => ['nullable', 'string'],
+            'rows.*.specialization_id' => ['required', 'integer', 'exists:specializations,id'],
+            'rows.*.section' => ['nullable', 'string'],
+            'rows.*.supervisor' => ['nullable', 'string'],
+            'rows.*.supervisor_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
         $termId = $currentTerm->get();
@@ -44,7 +48,7 @@ class TeamImportController extends Controller
             throw ValidationException::withMessages(['term_id' => 'لا يوجد فصل دراسي محدد.']);
         }
 
-        $result = $service->confirm($data['rows'], $data['specialization_id'], $termId);
+        $result = $service->confirm($data['rows'], $termId);
 
         return response()->json($result, isset($result['created']) ? 201 : 422);
     }
