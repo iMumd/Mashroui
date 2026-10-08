@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\GenderEnum;
+use App\Enums\RegionEnum;
 use App\Enums\RoleEnum;
 use App\Enums\UserStatusEnum;
 use App\Http\Controllers\Controller;
@@ -10,12 +12,14 @@ use App\Models\AuditLog;
 use App\Models\InviteLink;
 use App\Models\TeamMember;
 use App\Models\User;
+use App\Rules\CollegeEmail;
 use App\Rules\WhatsappNumber;
 use App\Support\CurrentTerm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
@@ -34,14 +38,25 @@ class UserController extends Controller
         $data = $request->validate([
             'role' => ['required', Rule::in($allowedRoles)],
             'unassigned' => ['sometimes', 'boolean'],
+            'gender' => ['sometimes', Rule::enum(GenderEnum::class)],
+            'region' => ['sometimes', Rule::enum(RegionEnum::class)],
         ]);
 
-        $query = User::where('role', $data['role']);
+        $termId = $currentTerm->get();
+
+        $query = User::where('role', $data['role'])->where('term_id', $termId);
 
         if ($data['role'] === RoleEnum::Student->value && $request->boolean('unassigned')) {
-            $termId = $currentTerm->get();
             $assignedIds = TeamMember::whereHas('team', fn ($q) => $q->where('term_id', $termId))->pluck('student_id');
             $query->whereNotIn('id', $assignedIds);
+        }
+
+        // تصنيف حسب الجنس (طلاب/طالبات) ومكان التواجد (غزة/جنوب)
+        if (isset($data['gender'])) {
+            $query->where('gender', $data['gender']);
+        }
+        if (isset($data['region'])) {
+            $query->where('region', $data['region']);
         }
 
         $users = $query->orderBy('name')->get();
@@ -58,6 +73,8 @@ class UserController extends Controller
             'whatsapp' => ['nullable', new WhatsappNumber],
             'employee_number' => ['nullable', 'string', 'max:30'],
             'university_number' => ['nullable', 'string', 'max:30'],
+            'gender' => ['nullable', Rule::enum(GenderEnum::class)],
+            'region' => ['nullable', Rule::enum(RegionEnum::class)],
             'specialization_id' => ['nullable', 'exists:specializations,id'],
         ]);
 
@@ -120,7 +137,7 @@ class UserController extends Controller
         $actor = $request->user();
 
         if ($actor->role === RoleEnum::SuperAdmin) {
-            $allowedRoles = [RoleEnum::Supervisor->value, RoleEnum::Committee->value];
+            $allowedRoles = [RoleEnum::Student->value, RoleEnum::Supervisor->value, RoleEnum::Committee->value];
         } elseif ($actor->role === RoleEnum::Committee) {
             $allowedRoles = [RoleEnum::Student->value, RoleEnum::Supervisor->value];
         } else {
@@ -160,7 +177,7 @@ class UserController extends Controller
     {
         $this->authorizeManageTarget($request, $user);
 
-        $password = Str::password(12);
+        $password = $this->generateSafePassword();
 
         $user->update([
             'password' => $password,
@@ -176,6 +193,23 @@ class UserController extends Controller
         ]);
 
         return response()->json(['password' => $password]);
+    }
+
+    /**
+     * كلمة سر عشوائية بتُرسل نصًا (واتساب/بريد) وبيُعاد كتابتها يدويًا غالبًا — نتفادى قصدًا أي رمز
+     * ممكن يلخبط النقل اليدوي: بلا رموز خاصة إطلاقًا (ولا حتى أحرف تنسيق واتساب _ * ~ `)،
+     * وبلا أحرف متشابهة بصريًا (0/O، 1/l/I) — بس حروف وأرقام واضحة 100%.
+     */
+    private function generateSafePassword(int $length = 14): string
+    {
+        $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+        $password = '';
+
+        for ($i = 0; $i < $length; $i++) {
+            $password .= $chars[random_int(0, strlen($chars) - 1)];
+        }
+
+        return $password;
     }
 
     /**
@@ -205,7 +239,7 @@ class UserController extends Controller
      * سوبر أدمن ينشئ حسابات مشرفين ولجنة إشراف. لجنة الإشراف تنشئ حسابات مشرفين وطلاب
      * (طلاب أيضًا عبر استيراد Excel الجماعي — هذا المسار لإضافة حساب واحد مباشرة).
      */
-    public function store(Request $request)
+    public function store(Request $request, CurrentTerm $currentTerm)
     {
         $actor = $request->user();
 
@@ -224,10 +258,23 @@ class UserController extends Controller
             'whatsapp' => ['nullable', new WhatsappNumber],
             'employee_number' => ['nullable', 'string', 'max:30'],
             'university_number' => ['nullable', 'string', 'max:30'],
+            'gender' => ['nullable', Rule::enum(GenderEnum::class)],
+            'region' => ['nullable', Rule::enum(RegionEnum::class)],
             'specialization_id' => ['nullable', 'exists:specializations,id'],
         ]);
 
-        $result = DB::transaction(function () use ($data) {
+        $expectedDomain = $data['role'] === RoleEnum::Student->value ? CollegeEmail::STUDENT_DOMAIN : CollegeEmail::STAFF_DOMAIN;
+        if (! CollegeEmail::matches($data['email'], $expectedDomain)) {
+            throw ValidationException::withMessages(['email' => "البريد الإلكتروني يجب أن ينتهي بـ @{$expectedDomain}."]);
+        }
+
+        $termId = $currentTerm->get();
+
+        if (! $termId) {
+            throw ValidationException::withMessages(['term_id' => 'لا يوجد سنة دراسية محدّدة.']);
+        }
+
+        $result = DB::transaction(function () use ($data, $termId) {
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -236,7 +283,10 @@ class UserController extends Controller
                 'whatsapp' => $data['whatsapp'] ?? null,
                 'employee_number' => $data['employee_number'] ?? null,
                 'university_number' => $data['university_number'] ?? null,
+                'gender' => $data['gender'] ?? null,
+                'region' => $data['region'] ?? null,
                 'specialization_id' => $data['specialization_id'] ?? null,
+                'term_id' => $termId,
                 'status' => UserStatusEnum::Active,
                 'must_change_password' => true,
             ]);

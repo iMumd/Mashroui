@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\GenderEnum;
+use App\Enums\RegionEnum;
 use App\Enums\RoleEnum;
 use App\Enums\UserStatusEnum;
 use Database\Factories\UserFactory;
@@ -24,6 +26,8 @@ use Laravel\Sanctum\HasApiTokens;
     'whatsapp',
     'employee_number',
     'university_number',
+    'gender',
+    'region',
     'specialization_id',
     'term_id',
     'status',
@@ -48,6 +52,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => RoleEnum::class,
+            'gender' => GenderEnum::class,
+            'region' => RegionEnum::class,
             'status' => UserStatusEnum::class,
             'must_change_password' => 'boolean',
         ];

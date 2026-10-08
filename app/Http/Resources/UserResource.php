@@ -21,6 +21,8 @@ class UserResource extends JsonResource
             'restricted_reason' => $this->restricted_reason,
             'deleted_reason' => $this->deleted_reason,
             'created_at' => $this->created_at,
+            'gender' => $this->gender,
+            'region' => $this->region,
             'specialization_id' => $this->specialization_id,
             'email' => $canSeeContact ? $this->email : null,
             'whatsapp' => $canSeeContact ? $this->whatsapp : null,
