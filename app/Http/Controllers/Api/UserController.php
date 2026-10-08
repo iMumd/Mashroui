@@ -40,11 +40,15 @@ class UserController extends Controller
             'unassigned' => ['sometimes', 'boolean'],
             'gender' => ['sometimes', Rule::enum(GenderEnum::class)],
             'region' => ['sometimes', Rule::enum(RegionEnum::class)],
+            'specialization_id' => ['sometimes', 'integer', 'exists:specializations,id'],
+            'search' => ['sometimes', 'string', 'max:100'],
         ]);
 
         $termId = $currentTerm->get();
 
-        $query = User::where('role', $data['role'])->where('term_id', $termId);
+        // الطلاب مرتبطون بالسنة الدراسية؛ حسابات المشرفين واللجنة عابرة للسنوات (بلا term_id)
+        $query = User::where('role', $data['role'])
+            ->when($data['role'] === RoleEnum::Student->value, fn ($q) => $q->where('term_id', $termId));
 
         if ($data['role'] === RoleEnum::Student->value && $request->boolean('unassigned')) {
             $assignedIds = TeamMember::whereHas('team', fn ($q) => $q->where('term_id', $termId))->pluck('student_id');
@@ -57,6 +61,22 @@ class UserController extends Controller
         }
         if (isset($data['region'])) {
             $query->where('region', $data['region']);
+        }
+
+        // التخصص: تخصص الحساب، وللمشرف أيضًا تخصصات المجموعات التي يشرف عليها
+        if (isset($data['specialization_id'])) {
+            $specId = $data['specialization_id'];
+            $query->where(fn ($q) => $q->where('specialization_id', $specId)
+                ->orWhereHas('supervisedTeams', fn ($t) => $t->where('specialization_id', $specId)));
+        }
+
+        // بحث بالاسم أو الرقم الجامعي/الوظيفي أو البريد
+        if (! empty($data['search'])) {
+            $term = '%'.$data['search'].'%';
+            $query->where(fn ($q) => $q->where('name', 'like', $term)
+                ->orWhere('university_number', 'like', $term)
+                ->orWhere('employee_number', 'like', $term)
+                ->orWhere('email', 'like', $term));
         }
 
         $users = $query->orderBy('name')->get();

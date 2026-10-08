@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\EmailRelayController;
 use App\Http\Controllers\Api\FinalReportController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\MagicLoginController;
+use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\MessageDeliveryController;
 use App\Http\Controllers\Api\MessageTemplateController;
@@ -78,6 +79,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::middleware('force-password-change')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::get('/me/abilities', [AuthController::class, 'abilities']);
+        Route::patch('/me', [MeController::class, 'update']);
+        Route::post('/me/avatar', [MeController::class, 'avatar']);
         Route::post('/users', [UserController::class, 'store'])->middleware('term');
         Route::get('/users/trashed', [UserController::class, 'trashed']);
         Route::patch('/users/{user}', [UserController::class, 'update']);
