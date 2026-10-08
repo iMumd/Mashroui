@@ -28,7 +28,7 @@ class FeaturedProjectSeeder extends Seeder
         $specialization = Specialization::first();
 
         $supervisor = User::firstOrCreate(
-            ['email' => 'supervisor.featured@mashroui.local'],
+            ['email' => 'supervisor.featured@ucas.edu.ps'],
             [
                 'name' => 'م. سامر خليل',
                 'password' => 'password',
@@ -40,11 +40,11 @@ class FeaturedProjectSeeder extends Seeder
         );
 
         $leader = User::firstOrCreate(
-            ['email' => 'leader.featured@mashroui.local'],
+            ['email' => 'leader.featured@smail.ucas.edu.ps'],
             [
                 'name' => 'أحمد عودة',
                 'password' => 'password',
-                'role' => RoleEnum::TeamLeader,
+                'role' => RoleEnum::Student,
                 'specialization_id' => $specialization->id,
                 'term_id' => $termId,
                 'whatsapp' => '970562348871',
@@ -61,7 +61,7 @@ class FeaturedProjectSeeder extends Seeder
         ]);
 
         $member = User::firstOrCreate(
-            ['email' => 'ali.featured@mashroui.local'],
+            ['email' => 'ali.featured@smail.ucas.edu.ps'],
             [
                 'name' => 'علي منصور',
                 'password' => 'password',

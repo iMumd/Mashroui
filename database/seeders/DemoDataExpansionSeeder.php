@@ -22,10 +22,10 @@ class DemoDataExpansionSeeder extends DemoDataSeeder
         $mediaDiploma = Specialization::where('name', 'تكنولوجيا الوسائط المتعددة')->where('degree', 'diploma')->first();
         $mediaBachelor = Specialization::where('name', 'تكنولوجيا الوسائط المتعددة')->where('degree', 'bachelor')->first();
 
-        $supKhaled = User::where('email', 'supervisor@mashroui.local')->first();
-        $supHeba = User::where('email', 'h.zoubi@mashroui.local')->first();
-        $supRami = User::where('email', 'r.qasem@mashroui.local')->first();
-        $supNour = User::where('email', 'n.sharif@mashroui.local')->first();
+        $supKhaled = User::where('email', 'supervisor@ucas.edu.ps')->first();
+        $supHeba = User::where('email', 'h.zoubi@ucas.edu.ps')->first();
+        $supRami = User::where('email', 'r.qasem@ucas.edu.ps')->first();
+        $supNour = User::where('email', 'n.sharif@ucas.edu.ps')->first();
 
         // ===== فريق 10: تتبّع الحافلات الجامعية — قيد التنفيذ =====
         $leader10 = $this->leader('نادين أبو عيطة', 'nadine.leader@mashroui.local', $db->id);

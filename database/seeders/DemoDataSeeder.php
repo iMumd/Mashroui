@@ -49,22 +49,22 @@ class DemoDataSeeder extends Seeder
         $mediaDiploma = Specialization::where('name', 'تكنولوجيا الوسائط المتعددة')->where('degree', 'diploma')->first();
         $mediaBachelor = Specialization::where('name', 'تكنولوجيا الوسائط المتعددة')->where('degree', 'bachelor')->first();
 
-        $supervisorMain = User::where('email', 'supervisor@mashroui.local')->first();
-        $leaderMain = User::where('email', 'leader@mashroui.local')->first();
-        $studentMain = User::where('email', 'student@mashroui.local')->first();
+        $supervisorMain = User::where('email', 'supervisor@ucas.edu.ps')->first();
+        $leaderMain = User::where('email', 'leader@smail.ucas.edu.ps')->first();
+        $studentMain = User::where('email', 'student@smail.ucas.edu.ps')->first();
 
         $supHeba = User::create([
-            'name' => 'م. هبة الزعبي', 'email' => 'h.zoubi@mashroui.local',
+            'name' => 'م. هبة الزعبي', 'email' => $this->staffEmail('h.zoubi@mashroui.local'),
             'password' => 'password', 'role' => RoleEnum::Supervisor, 'specialization_id' => $mediaBachelor->id,
             'whatsapp' => '970569234481', 'employee_number' => 'EMP-1005',
         ]);
         $supRami = User::create([
-            'name' => 'م. رامي قاسم', 'email' => 'r.qasem@mashroui.local',
+            'name' => 'م. رامي قاسم', 'email' => $this->staffEmail('r.qasem@mashroui.local'),
             'password' => 'password', 'role' => RoleEnum::Supervisor, 'specialization_id' => $db->id,
             'whatsapp' => '970525871123', 'employee_number' => 'EMP-1006',
         ]);
         $supNour = User::create([
-            'name' => 'د. نور الشريف', 'email' => 'n.sharif@mashroui.local',
+            'name' => 'د. نور الشريف', 'email' => $this->staffEmail('n.sharif@mashroui.local'),
             'password' => 'password', 'role' => RoleEnum::Supervisor, 'specialization_id' => $web->id,
             'whatsapp' => '970542298761', 'employee_number' => 'EMP-1007',
         ]);
@@ -320,21 +320,37 @@ class DemoDataSeeder extends Seeder
     protected function leader(string $name, string $email, int $specId): User
     {
         return User::create([
-            'name' => $name, 'email' => $email, 'password' => 'password',
-            'role' => RoleEnum::TeamLeader, 'specialization_id' => $specId, 'term_id' => $this->termId,
+            'name' => $name, 'email' => $this->studentEmail($email), 'password' => 'password',
+            'role' => RoleEnum::Student, 'specialization_id' => $specId, 'term_id' => $this->termId,
             'whatsapp' => $this->palestinianNumber(),
             'university_number' => $this->universityNumber(),
+            'gender' => ['male', 'female'][random_int(0, 1)],
+            'region' => ['gaza', 'south'][random_int(0, 1)],
         ]);
     }
 
     protected function student(string $name, string $email, int $specId): User
     {
         return User::create([
-            'name' => $name, 'email' => $email, 'password' => 'password',
+            'name' => $name, 'email' => $this->studentEmail($email), 'password' => 'password',
             'role' => RoleEnum::Student, 'specialization_id' => $specId, 'term_id' => $this->termId,
             'whatsapp' => $this->palestinianNumber(),
             'university_number' => $this->universityNumber(),
+            'gender' => ['male', 'female'][random_int(0, 1)],
+            'region' => ['gaza', 'south'][random_int(0, 1)],
         ]);
+    }
+
+    /** بريد الكلية الرسمي للطلاب فقط (@smail.ucas.edu.ps) — نحافظ على الجزء قبل @ زي ما هو ونبدّل النطاق. */
+    protected function studentEmail(string $email): string
+    {
+        return \Illuminate\Support\Str::before($email, '@').'@'.\App\Rules\CollegeEmail::STUDENT_DOMAIN;
+    }
+
+    /** بريد الكلية الرسمي للمشرفين/لجنة الإشراف (@ucas.edu.ps) — بدون "smail." */
+    protected function staffEmail(string $email): string
+    {
+        return \Illuminate\Support\Str::before($email, '@').'@'.\App\Rules\CollegeEmail::STAFF_DOMAIN;
     }
 
     /** رقم واتساب فلسطيني واقعي (بادئات جوال وأوريدو الشائعة) بصيغة wa.me: 970 بدون صفر أو + */

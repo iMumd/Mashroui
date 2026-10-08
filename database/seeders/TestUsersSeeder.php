@@ -17,7 +17,7 @@ class TestUsersSeeder extends Seeder
 
         User::create([
             'name' => 'أ. منار حمدان',
-            'email' => 'committee@mashroui.local',
+            'email' => 'committee@ucas.edu.ps',
             'password' => 'password',
             'role' => RoleEnum::Committee,
             'whatsapp' => '970569845112',
@@ -26,7 +26,7 @@ class TestUsersSeeder extends Seeder
 
         User::create([
             'name' => 'م. خالد أبو غزالة',
-            'email' => 'supervisor@mashroui.local',
+            'email' => 'supervisor@ucas.edu.ps',
             'password' => 'password',
             'role' => RoleEnum::Supervisor,
             'specialization_id' => $specializationId,
@@ -36,9 +36,9 @@ class TestUsersSeeder extends Seeder
 
         User::create([
             'name' => 'عبدالله الطويل',
-            'email' => 'leader@mashroui.local',
+            'email' => 'leader@smail.ucas.edu.ps',
             'password' => 'password',
-            'role' => RoleEnum::TeamLeader,
+            'role' => RoleEnum::Student,
             'specialization_id' => $specializationId,
             'term_id' => $termId,
             'whatsapp' => '970599887654',
@@ -47,7 +47,7 @@ class TestUsersSeeder extends Seeder
 
         User::create([
             'name' => 'زيد النتشة',
-            'email' => 'student@mashroui.local',
+            'email' => 'student@smail.ucas.edu.ps',
             'password' => 'password',
             'role' => RoleEnum::Student,
             'specialization_id' => $specializationId,
