@@ -19,6 +19,9 @@ class DatabaseSeeder extends Seeder
             DemoDataExpansionSeeder::class,
             PastTermDemoSeeder::class,
             NextTermDemoSeeder::class,
+            DiscussionScheduleSeeder::class,
+            EvaluationResultsSeeder::class,
+            ArchiveDemoSeeder::class,
         ]);
     }
 }

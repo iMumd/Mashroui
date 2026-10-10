@@ -66,6 +66,8 @@ class EvaluationController extends Controller
         $results = $query->orderByDesc('score')->get()->map(fn (Evaluation $e) => [
             'id' => $e->id,
             'score' => $e->score,
+            'supervisor_score' => $e->supervisor_score,
+            'committee_score' => $e->committee_score,
             'notes' => $e->notes,
             'student' => [
                 'id' => $e->student?->id,

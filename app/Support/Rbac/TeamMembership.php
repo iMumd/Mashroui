@@ -8,10 +8,15 @@ use App\Models\User;
 
 class TeamMembership
 {
-    public function belongsTo(User $user, Team $team): bool
+    public function belongsTo(User $user, ?Team $team): bool
     {
         if (in_array($user->role, [RoleEnum::SuperAdmin, RoleEnum::Committee], true)) {
             return true;
+        }
+
+        // مهمة بلا فريق = مهمة لجنة الإشراف: للإدارة واللجنة فقط (الشرط أعلاه)
+        if ($team === null) {
+            return false;
         }
 
         if ($user->id === $team->supervisor_id || $user->id === $team->leader_id) {

@@ -12,6 +12,12 @@ class TaskResource extends JsonResource
         return [
             'id' => $this->id,
             'team_id' => $this->team_id,
+            'team' => $this->whenLoaded('team', fn () => $this->team === null ? null : [
+                'id' => $this->team->id,
+                'name' => $this->team->name,
+                'section' => $this->team->section,
+                'supervisor' => $this->team->supervisor ? ['id' => $this->team->supervisor->id, 'name' => $this->team->supervisor->name] : null,
+            ]),
             'title' => $this->title,
             'description' => $this->description,
             'status' => $this->status,

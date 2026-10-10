@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['team_id', 'title', 'description', 'status', 'due_date', 'created_by'])]
+#[Fillable(['team_id', 'term_id', 'title', 'description', 'status', 'due_date', 'created_by'])]
 class Task extends Model
 {
     use SoftDeletes;
@@ -21,6 +21,12 @@ class Task extends Model
             'status' => TaskStatusEnum::class,
             'due_date' => 'date',
         ];
+    }
+
+    /** مهمة بلا فريق (لعضو لجنة أو مشرف) — صاحب الوصول إليها هو المكلّف بها */
+    public function isStaffAssignee(User $user): bool
+    {
+        return $this->team_id === null && $this->assignees()->whereKey($user->id)->exists();
     }
 
     public function team(): BelongsTo

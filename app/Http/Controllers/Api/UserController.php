@@ -30,7 +30,8 @@ class UserController extends Controller
         if ($actor->role === RoleEnum::SuperAdmin) {
             $allowedRoles = [RoleEnum::Student->value, RoleEnum::Supervisor->value, RoleEnum::Committee->value];
         } elseif ($actor->role === RoleEnum::Committee) {
-            $allowedRoles = [RoleEnum::Student->value, RoleEnum::Supervisor->value];
+            // أعضاء اللجنة للقراءة فقط: مستلمو التكليفات والإعلانات (الإنشاء والتعديل للإدارة العامة)
+            $allowedRoles = [RoleEnum::Student->value, RoleEnum::Supervisor->value, RoleEnum::Committee->value];
         } else {
             abort(403);
         }

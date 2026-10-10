@@ -14,6 +14,11 @@ class ProjectService
             throw ValidationException::withMessages(['status' => 'المشروع لازم يكون قيد التنفيذ حتى يُنهى.']);
         }
 
+        // الأرشفة بعد اعتماد التقرير النهائي من المشرف ثم لجنة الإشراف فقط
+        if ($project->finalReports()->latest('id')->value('review_status') !== 'approved') {
+            throw ValidationException::withMessages(['status' => 'لا يُؤرشف المشروع قبل موافقة المشرف ثم اعتماد لجنة الإشراف على التقرير النهائي.']);
+        }
+
         $project->update([
             'status' => ProjectStatusEnum::Completed,
             'completed_at' => now(),

@@ -120,12 +120,20 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
-        Gate::authorize('update', $project);
+        // نوع المشروع للمشرف فقط؛ باقي الحقول للمشرف واللجنة والإدارة
+        if ($request->has('types')) {
+            Gate::authorize('updateTypes', $project);
+        }
+        if ($request->hasAny(['name', 'description', 'is_featured'])) {
+            Gate::authorize('update', $project);
+        }
 
         $data = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:200'],
             'description' => ['sometimes', 'required', 'string'],
             'is_featured' => ['sometimes', 'boolean'],
+            'types' => ['sometimes', 'array', 'max:6'],
+            'types.*' => ['string', 'distinct', 'max:50'],
         ]);
 
         $project->update($data);

@@ -55,6 +55,7 @@ class CommitteeDashboardController extends Controller
             ],
             'students_by_region' => [
                 'gaza' => (int) ($byRegion['gaza'] ?? 0),
+                'middle' => (int) ($byRegion['middle'] ?? 0),
                 'south' => (int) ($byRegion['south'] ?? 0),
             ],
             'latest_tasks' => $latestTasks,

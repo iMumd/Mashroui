@@ -12,7 +12,8 @@ class SendTaskCreatedNotification
         $task = $event->task;
         $team = $task->team;
 
-        $recipients = collect([$team->leader_id, $team->supervisor_id])
+        // مهمة لجنة الإشراف (بلا فريق) تُشعر عضو اللجنة المكلّف بها
+        $recipients = collect($team ? [$team->leader_id, $team->supervisor_id] : $task->assignees()->pluck('users.id')->all())
             ->filter()
             ->unique()
             ->reject(fn ($id) => $id === $task->created_by);

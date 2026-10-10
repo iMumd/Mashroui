@@ -15,7 +15,7 @@ class ReportController extends Controller
 
     private const GENDER_LABELS = ['male' => 'طلاب', 'female' => 'طالبات'];
 
-    private const REGION_LABELS = ['gaza' => 'غزة', 'south' => 'الجنوب'];
+    private const REGION_LABELS = ['gaza' => 'غزة', 'middle' => 'وسط غزة', 'south' => 'الجنوب'];
 
     // GET /reports/supervisors — تقرير بكل مشرف ومجموعاته (نوع المشروع، الأماكن، الجنس، الدرجة)
     public function supervisors(Request $request)
@@ -23,7 +23,7 @@ class ReportController extends Controller
         $viewer = $request->user();
         abort_unless(in_array($viewer->role, [RoleEnum::Committee, RoleEnum::SuperAdmin, RoleEnum::Supervisor], true), 403);
 
-        $query = Team::with(['supervisor:id,name', 'specialization:id,name,degree', 'project:id,team_id,name,status', 'members.student:id,gender,region'])
+        $query = Team::with(['supervisor:id,name', 'specialization:id,name,degree', 'project:id,team_id,name,status,types', 'members.student:id,gender,region'])
             ->orderBy('supervisor_id');
 
         // المشرف يطبع تقريره فقط
@@ -39,7 +39,7 @@ class ReportController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setRightToLeft(true);
         $sheet->fromArray([
-            'المشرف', 'المجموعة', 'الشعبة', 'المشروع', 'الدرجة', 'التخصص', 'الجنس', 'أماكن التواجد', 'عدد الأعضاء',
+            'المشرف', 'المجموعة', 'الشعبة', 'المشروع', 'نوع المشروع', 'الدرجة', 'التخصص', 'الجنس', 'أماكن التواجد', 'عدد الأعضاء',
         ], null, 'A1');
 
         $row = 2;
@@ -52,6 +52,7 @@ class ReportController extends Controller
                 $team->name,
                 $team->section ?? '',
                 $team->project?->name ?? '',
+                implode('، ', $team->project?->types ?? []),
                 self::DEGREE_LABELS[$team->specialization?->degree?->value] ?? '',
                 $team->specialization?->name ?? '',
                 $this->labelSet($genders, self::GENDER_LABELS),

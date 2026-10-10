@@ -91,6 +91,7 @@ class ProposalController extends Controller
                 'created_at' => $p->created_at,
                 'updated_at' => $p->updated_at,
                 'project_id' => $p->project_id,
+                'types' => $p->project?->types ?? [],
                 'team' => $team ? ['id' => $team->id, 'name' => $team->name, 'section' => $team->section] : null,
                 'degree' => $team?->specialization?->degree?->value,
                 'specialization' => $team?->specialization?->name,
@@ -179,6 +180,8 @@ class ProposalController extends Controller
             'problems' => ['nullable', 'string'],
             'solutions' => ['nullable', 'string'],
             'features_value' => ['nullable', 'string'],
+            'types' => ['required', 'array', 'min:1', 'max:6'],
+            'types.*' => ['string', 'distinct', 'max:50'],
             'pdf' => ['required', 'file', 'mimes:pdf,doc,docx,ppt,pptx', 'max:102400'],
         ]);
 
@@ -197,6 +200,9 @@ class ProposalController extends Controller
             'problems' => ['nullable', 'string'],
             'solutions' => ['nullable', 'string'],
             'features_value' => ['nullable', 'string'],
+            // مطلوب فقط لمشروع قديم بلا نوع؛ غير ذلك يُتجاهل (التعديل للمشرف)
+            'types' => [Rule::requiredIf(empty($proposal->project?->types)), 'array', 'min:1', 'max:6'],
+            'types.*' => ['string', 'distinct', 'max:50'],
             'pdf' => ['nullable', 'file', 'mimes:pdf,doc,docx,ppt,pptx', 'max:102400'],
         ]);
 

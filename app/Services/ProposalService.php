@@ -45,6 +45,9 @@ class ProposalService
             'submitted_by' => $leader->id,
         ]);
 
+        // نوع المشروع يحدده الطالب مع المقترح (إجباري)، وبعدها يعدّله المشرف فقط
+        $project->update(['types' => $data['types']]);
+
         $this->logSubmission($proposal, $leader, 1);
 
         return $proposal->fresh();
@@ -58,6 +61,11 @@ class ProposalService
 
         if ($proposal->rejection_count >= self::MAX_REJECTIONS) {
             throw ValidationException::withMessages(['status' => 'تم استنفاد جميع محاولات إعادة التقديم المسموحة. يرجى التواصل مع لجنة الإشراف.']);
+        }
+
+        // إعادة التقديم لا تغيّر نوع المشروع، إلا لمشروع قديم بلا نوع
+        if (! empty($data['types']) && empty($proposal->project?->types)) {
+            $proposal->project->update(['types' => $data['types']]);
         }
 
         $path = $pdf ? Storage::putFile('proposals', $pdf) : $proposal->pdf_path;

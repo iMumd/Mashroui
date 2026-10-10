@@ -38,6 +38,12 @@ class ProjectPolicy
             || ($user->role === RoleEnum::Supervisor && $project->supervisor_id === $user->id);
     }
 
+    /** نوع المشروع: يحدده الطالب مع المقترح، وبعدها يعدّله مشرف المشروع فقط (والإدارة العامة عبر Gate::before) */
+    public function updateTypes(User $user, Project $project): bool
+    {
+        return $user->role === RoleEnum::Supervisor && $project->supervisor_id === $user->id;
+    }
+
     public function delete(User $user, Project $project): bool
     {
         return $this->accessControl->can($user, 'projects') === AccessLevelEnum::Full

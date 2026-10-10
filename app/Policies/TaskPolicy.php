@@ -23,7 +23,7 @@ class TaskPolicy
     public function view(User $user, Task $task): bool
     {
         return $this->accessControl->can($user, 'tasks') !== AccessLevelEnum::Blocked
-            && $this->teamMembership->belongsTo($user, $task->team);
+            && ($this->teamMembership->belongsTo($user, $task->team) || $task->isStaffAssignee($user));
     }
 
     public function create(User $user): bool
@@ -39,8 +39,8 @@ class TaskPolicy
         }
 
         return $user->id === $task->created_by
-            || $user->id === $task->team->supervisor_id
-            || $user->id === $task->team->leader_id;
+            || $user->id === $task->team?->supervisor_id
+            || $user->id === $task->team?->leader_id;
     }
 
     public function delete(User $user, Task $task): bool
@@ -61,6 +61,6 @@ class TaskPolicy
     public function changeStatus(User $user, Task $task): bool
     {
         return $this->accessControl->can($user, 'tasks') === AccessLevelEnum::Full
-            && $this->teamMembership->belongsTo($user, $task->team);
+            && ($this->teamMembership->belongsTo($user, $task->team) || $task->isStaffAssignee($user));
     }
 }

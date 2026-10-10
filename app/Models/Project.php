@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'supervisor_id',
     'name',
     'description',
+    'types',
     'department_id',
     'specialization_id',
     'term_id',
@@ -35,6 +36,7 @@ class Project extends Model
         return [
             'status' => ProjectStatusEnum::class,
             'is_featured' => 'boolean',
+            'types' => 'array',
             'completed_at' => 'datetime',
             'archived_at' => 'datetime',
         ];
