@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AssistantController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BulkNotifyController;
 use App\Http\Controllers\Api\CommitteeDashboardController;
+use App\Http\Controllers\Api\ComposeTemplateController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DiscussionController;
 use App\Http\Controllers\Api\DiscussionExportController;
@@ -99,6 +100,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::put('/message-templates/{messageTemplate}', [MessageTemplateController::class, 'update']);
         Route::delete('/message-templates/{messageTemplate}', [MessageTemplateController::class, 'destroy']);
 
+        Route::get('/compose-templates', [ComposeTemplateController::class, 'index']);
+        Route::post('/compose-templates', [ComposeTemplateController::class, 'store']);
+        Route::delete('/compose-templates/{composeTemplate}', [ComposeTemplateController::class, 'destroy']);
+
         Route::apiResource('departments', DepartmentController::class);
         Route::apiResource('specializations', SpecializationController::class);
         Route::apiResource('academic-terms', AcademicTermController::class);
@@ -128,6 +133,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/tickets/{ticket}/replies', [TicketController::class, 'reply']);
         Route::post('/tickets/{ticket}/close', [TicketController::class, 'close']);
         Route::post('/tickets/{ticket}/reopen', [TicketController::class, 'reopen']);
+        Route::post('/tickets/{ticket}/archive', [TicketController::class, 'archive']);
+        Route::post('/tickets/{ticket}/unarchive', [TicketController::class, 'unarchive']);
+        Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy']);
 
         Route::middleware('term')->group(function () {
             Route::get('/users', [UserController::class, 'index']);

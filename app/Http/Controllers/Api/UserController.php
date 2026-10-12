@@ -64,6 +64,12 @@ class UserController extends Controller
             $query->where('region', $data['region']);
         }
 
+        // عضو اللجنة المرتبط بتخصص: الطلاب والمشرفون من تخصصه فقط
+        $viewer = $request->user();
+        if ($viewer->role === RoleEnum::Committee && $viewer->specialization_id && in_array($data['role'], [RoleEnum::Student->value, RoleEnum::Supervisor->value], true)) {
+            $data['specialization_id'] = $viewer->specialization_id;
+        }
+
         // التخصص: تخصص الحساب، وللمشرف أيضًا تخصصات المجموعات التي يشرف عليها
         if (isset($data['specialization_id'])) {
             $specId = $data['specialization_id'];

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ProjectStatusEnum;
+use App\Models\Scopes\SpecializationScope;
 use App\Models\Scopes\TermScope;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -29,6 +30,7 @@ class Project extends Model
     protected static function booted(): void
     {
         static::addGlobalScope(new TermScope);
+        static::addGlobalScope(new SpecializationScope);
     }
 
     protected function casts(): array

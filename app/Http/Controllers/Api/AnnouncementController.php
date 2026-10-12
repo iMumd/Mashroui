@@ -119,6 +119,9 @@ class AnnouncementController extends Controller
             'files.*' => ['file', 'mimes:'.AllowedDocumentTypes::MIMES, 'max:10240'],
         ]);
 
+        // الإرسال للجنة الإشراف للإدارة العامة وحدها؛ اللجنة ترسل للمشرفين والمجموعات
+        abort_if($request->user()->role === RoleEnum::Committee && $data['audience'] === 'committee', 403, 'لجنة الإشراف ترسل للمشرفين والمجموعات فقط.');
+
         $batch = $service->send($data, $request->file('files', []), $request->user());
 
         $group = Announcement::with('author:id,name,role', 'team:id,name,section', 'targetUser:id,name,role', 'attachments')

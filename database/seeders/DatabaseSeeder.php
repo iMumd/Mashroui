@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
             DiscussionScheduleSeeder::class,
             EvaluationResultsSeeder::class,
             ArchiveDemoSeeder::class,
+            TicketSeeder::class,
+            CommitteeInboxSeeder::class,
         ]);
     }
 }

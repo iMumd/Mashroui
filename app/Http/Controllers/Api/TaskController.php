@@ -9,6 +9,7 @@ use App\Http\Resources\TaskResource;
 use App\Models\AuditLog;
 use App\Models\Task;
 use App\Models\Team;
+use App\Models\User;
 use App\Services\ProgressService;
 use App\Services\TaskService;
 use App\Support\CurrentTerm;
@@ -45,6 +46,8 @@ class TaskController extends Controller
             'audience' => ['nullable', Rule::in(['groups', 'committee', 'supervisors'])],
             'team_id' => ['nullable', 'integer'],
             'supervisor_id' => ['nullable', 'integer'],
+            'degree' => ['nullable', Rule::in(['diploma', 'bachelor'])],
+            'specialization_id' => ['nullable', 'integer'],
             'assignee_id' => ['nullable', 'integer'],
             'status' => ['nullable', Rule::in([...array_column(TaskStatusEnum::cases(), 'value'), 'late'])],
             'due' => ['nullable', Rule::in(['late', 'week', 'none'])],
@@ -57,14 +60,17 @@ class TaskController extends Controller
         // مهام المجموعات: whereHas('team') يطبّق TermScope على الفرق → الفصل الحالي فقط
         $groups = fn ($q) => $q->whereHas('team', fn ($q) => $q
             ->when($data['team_id'] ?? null, fn ($q, $id) => $q->whereKey($id))
-            ->when($data['supervisor_id'] ?? null, fn ($q, $id) => $q->where('supervisor_id', $id)));
+            ->when($data['supervisor_id'] ?? null, fn ($q, $id) => $q->where('supervisor_id', $id))
+            ->when($data['specialization_id'] ?? null, fn ($q, $id) => $q->where('specialization_id', $id))
+            ->when($data['degree'] ?? null, fn ($q, $d) => $q->whereHas('specialization', fn ($q) => $q->where('degree', $d))));
         // مهام بلا فريق (لجنة الإشراف أو المشرفين): الفصل من term_id، والجهة من دور المكلّف
         $term = app(CurrentTerm::class)->get();
         $staff = fn ($q, ?RoleEnum $role = null) => $q->whereNull('team_id')
             ->when($term, fn ($q, $id) => $q->where('term_id', $id))
             ->when($role, fn ($q) => $q->whereHas('assignees', fn ($q) => $q->where('role', $role)));
         // فلتر المجموعة أو المشرف يخص مهام المجموعات فقط
-        $audience = $data['audience'] ?? (isset($data['team_id']) || isset($data['supervisor_id']) ? 'groups' : null);
+        $teamFilter = isset($data['team_id']) || isset($data['degree']) || isset($data['specialization_id']);
+        $audience = $data['audience'] ?? ($teamFilter || isset($data['supervisor_id']) ? 'groups' : null);
 
         // جهة "المجموعات" تشمل مهام المشرفين أنفسهم (منفصلة عن لجنة الإشراف)؛ فلتر المشرف = مهام مجموعاته + مهامه هو
         $supervisorsStaff = fn ($q) => $staff($q, RoleEnum::Supervisor)
@@ -72,7 +78,8 @@ class TaskController extends Controller
 
         $base = Task::query()
             ->where(fn ($q) => match ($audience) {
-                'groups' => isset($data['team_id']) ? $groups($q) : $groups($q)->orWhere(fn ($q) => $supervisorsStaff($q)),
+                // فلاتر المجموعة/الدرجة/التخصص تخص مهام المجموعات وحدها
+                'groups' => $teamFilter ? $groups($q) : $groups($q)->orWhere(fn ($q) => $supervisorsStaff($q)),
                 'committee' => $staff($q, RoleEnum::Committee),
                 'supervisors' => $staff($q, RoleEnum::Supervisor),
                 default => $groups($q)->orWhere(fn ($q) => $staff($q)),
@@ -146,6 +153,13 @@ class TaskController extends Controller
             'description' => ['nullable', 'string'],
             'due_date' => ['nullable', 'date'],
         ]);
+
+        // لجنة الإشراف تكلّف المشرفين فقط؛ تكليف أعضاء اللجنة للإدارة العامة وحدها
+        abort_if(
+            $request->user()->role === RoleEnum::Committee && User::find($data['user_id'])?->role !== RoleEnum::Supervisor,
+            403,
+            'لجنة الإشراف ترسل المهام للمشرفين والمجموعات فقط.'
+        );
 
         $task = $service->createForStaff($data, $request->user());
 

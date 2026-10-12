@@ -61,10 +61,15 @@ class TaskService
             throw ValidationException::withMessages(['team_ids' => 'إحدى المجموعات غير موجودة في الفصل الحالي.']);
         }
 
-        // تحديد طلاب بعينهم متاح فقط عند مجموعة واحدة
-        $assigneeIds = $teams->count() === 1 ? $this->validateAssignees($teams->first(), $data['assignee_ids'] ?? []) : [];
+        // المكلّفون من طلاب المجموعات المحددة: كل مجموعة تأخذ المحدَّدين من أعضائها، ومجموعة بلا محدَّدين = كل أعضائها
+        $requested = array_values(array_unique(array_map('intval', $data['assignee_ids'] ?? [])));
+        $members = DB::table('team_members')->whereIn('team_id', $teamIds)->get(['team_id', 'student_id']);
+        if (array_diff($requested, $members->pluck('student_id')->map('intval')->all())) {
+            throw ValidationException::withMessages(['assignee_ids' => 'أحد الأشخاص المكلّفين مش عضو بالمجموعات المحددة.']);
+        }
 
-        $tasks = DB::transaction(fn () => $teams->map(function (Team $team) use ($data, $creator, $assigneeIds) {
+        $tasks = DB::transaction(fn () => $teams->map(function (Team $team) use ($data, $creator, $requested, $members) {
+            $assigneeIds = $members->where('team_id', $team->id)->pluck('student_id')->map('intval')->intersect($requested)->values()->all();
             $task = Task::create([
                 'team_id' => $team->id,
                 'title' => $data['title'],

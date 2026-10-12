@@ -41,6 +41,12 @@ class CommitteeToolsTest extends TestCase
         $this->actingAs($sup)->postJson('/api/tasks/batch', ['team_ids' => [$team], 'title' => 'x'])->assertForbidden();
         $this->actingAs($sup)->postJson('/api/staff/tasks', ['user_id' => $committee->id, 'title' => 'x'])->assertForbidden();
 
+        // الإرسال للجنة الإشراف للإدارة العامة وحدها
+        $this->actingAs($committee)->postJson('/api/staff/tasks', ['user_id' => $otherCommittee->id, 'title' => 'x'])->assertForbidden();
+        $this->actingAs($committee)->postJson('/api/announcements/send', ['type' => 'announcement', 'audience' => 'committee', 'user_ids' => [$otherCommittee->id], 'body' => 'x'])->assertForbidden();
+        $this->actingAs($admin)->postJson('/api/staff/tasks', ['user_id' => $committee->id, 'title' => 'مراجعة'])->assertCreated();
+        $this->actingAs($admin)->postJson('/api/announcements/send', ['type' => 'announcement', 'audience' => 'committee', 'user_ids' => [$committee->id], 'body' => 'x'])->assertCreated();
+
         // منشئ المهمة يعلّق عليها ويرفق ملفًا
         $this->actingAs($committee)->postJson("/api/tasks/{$task['id']}/notes", ['note' => 'يرجى الالتزام بالموعد'])->assertCreated();
         $this->actingAs($committee)->post("/api/tasks/{$task['id']}/files", ['file' => UploadedFile::fake()->create('guide.pdf', 20, 'application/pdf')], ['Accept' => 'application/json'])->assertCreated();
