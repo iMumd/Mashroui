@@ -24,7 +24,7 @@ class TaskFileController extends Controller
     {
         // الطلاب يرفعون تسليماتهم؛ ومُنشئ المهمة (لجنة الإشراف) يرفق ملفاتها
         if ($request->user()->id !== $task->created_by) {
-            Gate::authorize('create', TaskFile::class);
+            Gate::authorize('upload', [TaskFile::class, $task]);
         }
 
         $request->validate([

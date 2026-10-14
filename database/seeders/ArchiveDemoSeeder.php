@@ -24,9 +24,14 @@ class ArchiveDemoSeeder extends Seeder
     public function run(): void
     {
         $committee = User::where('role', RoleEnum::Committee)->orderBy('id')->value('id');
-        $projects = Project::with('team.members')->whereNotNull('team_id')->orderBy('id')->get();
+        $projects = Project::with('team.members', 'proposal')->whereNotNull('team_id')->orderBy('id')->get();
 
         foreach ($projects->values() as $i => $project) {
+            // مشروع بلا مقترح (فريق حسابي التجربة) يبقى قيد التنفيذ بلا تقرير
+            if (! $project->proposal) {
+                continue;
+            }
+
             $archived = $i % 3 !== 2;
             $status = $archived ? 'approved' : self::PENDING[intdiv($i, 3) % count(self::PENDING)];
             $uploader = $project->team?->leader_id ?? $project->team?->members->first()?->student_id;

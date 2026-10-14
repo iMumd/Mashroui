@@ -32,6 +32,18 @@ class TeamMembership
         return Team::where('leader_id', $user->id)->exists();
     }
 
+    /** هل الطالب عضو في أي فريق (الحساب الأساسي أو عضو) — أي عضو يسلّم المقترح والتقرير النهائي */
+    public function inAnyTeam(User $user): bool
+    {
+        return Team::where('leader_id', $user->id)->orWhereHas('members', fn ($m) => $m->where('student_id', $user->id))->exists();
+    }
+
+    /** هل الطالب عضو في هذا الفريق تحديدًا (الحساب الأساسي أو عضو) */
+    public function isStudentOf(User $user, Team $team): bool
+    {
+        return $this->isLeaderOf($user, $team) || $team->members()->where('student_id', $user->id)->exists();
+    }
+
     /** هل المستخدم هو القائد الحالي لهذا الفريق تحديدًا */
     public function isLeaderOf(User $user, Team $team): bool
     {

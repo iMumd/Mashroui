@@ -180,7 +180,7 @@ class ProposalController extends Controller
             'problems' => ['nullable', 'string'],
             'solutions' => ['nullable', 'string'],
             'features_value' => ['nullable', 'string'],
-            'types' => ['required', 'array', 'min:1', 'max:6'],
+            'types' => ['required', 'array', 'min:1', 'max:3'],
             'types.*' => ['string', 'distinct', 'max:50'],
             'pdf' => ['required', 'file', 'mimes:pdf,doc,docx,ppt,pptx', 'max:102400'],
         ]);
@@ -201,7 +201,7 @@ class ProposalController extends Controller
             'solutions' => ['nullable', 'string'],
             'features_value' => ['nullable', 'string'],
             // مطلوب فقط لمشروع قديم بلا نوع؛ غير ذلك يُتجاهل (التعديل للمشرف)
-            'types' => [Rule::requiredIf(empty($proposal->project?->types)), 'array', 'min:1', 'max:6'],
+            'types' => [Rule::requiredIf(empty($proposal->project?->types)), 'array', 'min:1', 'max:3'],
             'types.*' => ['string', 'distinct', 'max:50'],
             'pdf' => ['nullable', 'file', 'mimes:pdf,doc,docx,ppt,pptx', 'max:102400'],
         ]);

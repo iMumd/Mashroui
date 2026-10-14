@@ -22,6 +22,8 @@ class TaskNoteController extends Controller
     public function store(Request $request, Task $task, TaskNoteService $service)
     {
         Gate::authorize('create', TaskNote::class);
+        // الملاحظة على مهام فريقك فقط (مهامك ومهام زملائك)
+        Gate::authorize('viewAny', [TaskNote::class, $task]);
 
         $data = $request->validate([
             'note' => ['required', 'string'],

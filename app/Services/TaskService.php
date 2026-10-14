@@ -133,16 +133,11 @@ class TaskService
 
     public function changeStatus(Task $task, TaskStatusEnum $status, User $actor): Task
     {
-        $isLeader = $actor->id === $task->team?->leader_id;
-        $isAssignee = $task->assignees()->whereKey($actor->id)->exists();
+        // مهمة فريق: الطالب المنتسب لها فقط (المكلّف، أو أي عضو إن كانت لكل الفريق). مهمة بلا فريق: المكلّف بها (لجنة/مشرف)
+        $allowed = $task->team_id !== null ? $task->isStudentAssignee($actor) : $task->isStaffAssignee($actor);
 
-        if (! $isLeader && ! $isAssignee) {
-            throw ValidationException::withMessages(['status' => 'تغيير حالة المهمة متاح لقائد الفريق أو الطالب المكلف بها فقط.']);
-        }
-
-        // عضو اللجنة المكلّف بمهمة لجنة يملك كل الحالات؛ الطالب المكلّف يبدّل بين "قيد التنفيذ" و"مكتمل" فقط
-        if (! $isLeader && $task->team_id !== null && ! in_array($status, [TaskStatusEnum::InProgress, TaskStatusEnum::Done], true)) {
-            throw ValidationException::withMessages(['status' => 'يمكنك فقط التبديل بين "قيد التنفيذ" و"مكتمل".']);
+        if (! $allowed) {
+            throw ValidationException::withMessages(['status' => 'تغيير حالة المهمة متاح للطالب المنتسب لها فقط.']);
         }
 
         $from = $task->status;

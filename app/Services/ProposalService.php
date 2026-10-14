@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\Project;
 use App\Models\Proposal;
 use App\Models\User;
+use App\Support\Rbac\TeamMembership;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -23,7 +24,7 @@ class ProposalService
     {
         $project = Project::findOrFail($data['project_id']);
 
-        if ($project->team->leader_id !== $leader->id) {
+        if (! app(TeamMembership::class)->isStudentOf($leader, $project->team)) {
             throw ValidationException::withMessages(['project_id' => 'هذا المشروع مش تبع فريقك.']);
         }
 
@@ -45,7 +46,7 @@ class ProposalService
             'submitted_by' => $leader->id,
         ]);
 
-        // نوع المشروع يحدده الطالب مع المقترح (إجباري)، وبعدها يعدّله المشرف فقط
+        // نوع المشروع يحدده الطالب مع المقترح (إجباري)، ويعدّله الطالب عند إعادة التقديم أو المشرف
         $project->update(['types' => $data['types']]);
 
         $this->logSubmission($proposal, $leader, 1);
@@ -63,8 +64,8 @@ class ProposalService
             throw ValidationException::withMessages(['status' => 'تم استنفاد جميع محاولات إعادة التقديم المسموحة. يرجى التواصل مع لجنة الإشراف.']);
         }
 
-        // إعادة التقديم لا تغيّر نوع المشروع، إلا لمشروع قديم بلا نوع
-        if (! empty($data['types']) && empty($proposal->project?->types)) {
+        // الطالب يحدد نوع المشروع مع كل تقديم أو إعادة تقديم
+        if (! empty($data['types'])) {
             $proposal->project->update(['types' => $data['types']]);
         }
 

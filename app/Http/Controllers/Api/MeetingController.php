@@ -22,7 +22,7 @@ class MeetingController extends Controller
 
     public function store(Request $request, Team $team, MeetingService $service)
     {
-        Gate::authorize('create', Meeting::class);
+        Gate::authorize('create', [Meeting::class, $team]);
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:200'],

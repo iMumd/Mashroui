@@ -60,7 +60,15 @@ class TaskPolicy
 
     public function changeStatus(User $user, Task $task): bool
     {
-        return $this->accessControl->can($user, 'tasks') === AccessLevelEnum::Full
-            && ($this->teamMembership->belongsTo($user, $task->team) || $task->isStaffAssignee($user));
+        if ($this->accessControl->can($user, 'tasks') !== AccessLevelEnum::Full) {
+            return false;
+        }
+
+        // الطالب يغيّر حالة المهام المنتسب لها فقط
+        if ($user->role === RoleEnum::Student) {
+            return $task->isStudentAssignee($user);
+        }
+
+        return $this->teamMembership->belongsTo($user, $task->team) || $task->isStaffAssignee($user);
     }
 }

@@ -8,6 +8,7 @@ use App\Models\Meeting;
 use App\Models\MeetingReminder;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\Rbac\TeamMembership;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
 
@@ -23,7 +24,8 @@ class MeetingService
     {
         $team = Team::findOrFail($data['team_id']);
 
-        if ($creator->id !== $team->supervisor_id && $creator->id !== $team->leader_id) {
+        // مشرف الفريق أو أي طالب فيه
+        if ($creator->id !== $team->supervisor_id && ! app(TeamMembership::class)->isStudentOf($creator, $team)) {
             throw ValidationException::withMessages(['team_id' => 'هذا الفريق مش تبعك.']);
         }
 

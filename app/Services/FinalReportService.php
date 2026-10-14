@@ -3,12 +3,12 @@
 namespace App\Services;
 
 use App\Enums\ProjectStatusEnum;
-use App\Enums\ProposalStatusEnum;
 use App\Enums\RoleEnum;
 use App\Events\FileUploaded;
 use App\Models\FinalReport;
 use App\Models\Project;
 use App\Models\User;
+use App\Support\Rbac\TeamMembership;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -17,16 +17,13 @@ class FinalReportService
 {
     public function upload(array $data, UploadedFile $file, User $leader): FinalReport
     {
-        $project = Project::with('proposal')->findOrFail($data['project_id']);
+        $project = Project::findOrFail($data['project_id']);
 
-        if ($project->team->leader_id !== $leader->id) {
+        if (! app(TeamMembership::class)->isStudentOf($leader, $project->team)) {
             throw ValidationException::withMessages(['project_id' => 'هذا المشروع مش تبع فريقك.']);
         }
 
-        if ($project->proposal?->status !== ProposalStatusEnum::Approved) {
-            throw ValidationException::withMessages(['project_id' => 'الرفع يُتاح بعد اعتماد المقترح فقط.']);
-        }
-
+        // نموذج التقرير النهائي مفتوح للطالب في أي وقت (بلا شرط اعتماد المقترح)
         $finalReport = FinalReport::create([
             'project_id' => $project->id,
             'pdf_path' => Storage::putFile('final_reports', $file),

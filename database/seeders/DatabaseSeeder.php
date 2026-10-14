@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             ArchiveDemoSeeder::class,
             TicketSeeder::class,
             CommitteeInboxSeeder::class,
+            ComposeTemplateSeeder::class,
         ]);
     }
 }

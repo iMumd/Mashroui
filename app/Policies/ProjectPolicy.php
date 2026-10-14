@@ -39,6 +39,12 @@ class ProjectPolicy
     }
 
     /** نوع المشروع: يحدده الطالب مع المقترح، وبعدها يعدّله مشرف المشروع فقط (والإدارة العامة عبر Gate::before) */
+    /** أفضل مشاريع التخرج في الصفحة الرئيسية (is_featured): لجنة الإشراف فقط (والإدارة العامة عبر Gate::before) */
+    public function feature(User $user, Project $project): bool
+    {
+        return $user->role === RoleEnum::Committee;
+    }
+
     public function updateTypes(User $user, Project $project): bool
     {
         return $user->role === RoleEnum::Supervisor && $project->supervisor_id === $user->id;

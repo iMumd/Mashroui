@@ -26,6 +26,7 @@ class TaskResource extends JsonResource
             'created_by' => $this->createdBy ? new UserResource($this->createdBy) : null,
             'files' => TaskFileResource::collection($this->whenLoaded('files')),
             'notes' => TaskNoteResource::collection($this->whenLoaded('notes')),
+            'created_at' => $this->created_at,
         ];
     }
 }

@@ -29,6 +29,6 @@ class FinalReportPolicy
     public function create(User $user): bool
     {
         return $this->accessControl->can($user, 'projects') === AccessLevelEnum::Full
-            && $this->teamMembership->leadsAnyTeam($user);
+            && $this->teamMembership->inAnyTeam($user);
     }
 }

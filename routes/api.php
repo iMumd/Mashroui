@@ -101,7 +101,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/message-templates/{messageTemplate}', [MessageTemplateController::class, 'destroy']);
 
         Route::get('/compose-templates', [ComposeTemplateController::class, 'index']);
+        Route::get('/compose-templates/files/{file}/download', [ComposeTemplateController::class, 'downloadFile']);
         Route::post('/compose-templates', [ComposeTemplateController::class, 'store']);
+        Route::put('/compose-templates/{composeTemplate}', [ComposeTemplateController::class, 'update']);
         Route::delete('/compose-templates/{composeTemplate}', [ComposeTemplateController::class, 'destroy']);
 
         Route::apiResource('departments', DepartmentController::class);
