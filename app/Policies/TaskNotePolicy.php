@@ -17,18 +17,18 @@ class TaskNotePolicy
     public function viewAny(User $user, Task $task): bool
     {
         return $this->accessControl->can($user, 'tasks') !== AccessLevelEnum::Blocked
-            && $this->teamMembership->belongsTo($user, $task->team);
+            && ($this->teamMembership->belongsTo($user, $task->team) || $task->isStaffAssignee($user));
     }
 
     public function view(User $user, TaskNote $taskNote): bool
     {
         return $this->accessControl->can($user, 'tasks') !== AccessLevelEnum::Blocked
-            && $this->teamMembership->belongsTo($user, $taskNote->task->team);
+            && ($this->teamMembership->belongsTo($user, $taskNote->task->team) || $taskNote->task->isStaffAssignee($user));
     }
 
     public function create(User $user): bool
     {
         return $this->accessControl->can($user, 'tasks') === AccessLevelEnum::Full
-            && in_array($user->role, [RoleEnum::Supervisor, RoleEnum::Student], true);
+            && in_array($user->role, [RoleEnum::Supervisor, RoleEnum::Student, RoleEnum::Committee], true);
     }
 }

@@ -53,7 +53,8 @@ class ProgressService
     /** نظرة عامة على تقدّم كل الفرق — لجنة: الكل، مشرف: فرقه فقط */
     public function overview(User $user): Collection
     {
-        $query = Team::with('supervisor', 'specialization.department', 'project.department', 'members.student');
+        // آخر نشاط لكل طالب = آخر استخدام لتوكن دخوله (tokens_max_last_used_at)
+        $query = Team::with(['supervisor', 'specialization.department', 'project.department', 'members.student' => fn ($q) => $q->withMax('tokens', 'last_used_at')]);
 
         if ($user->role === RoleEnum::Supervisor) {
             $query->where('supervisor_id', $user->id);

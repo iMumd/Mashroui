@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['user_id', 'subject', 'status', 'last_reply_at', 'closed_at', 'closed_by'])]
+#[Fillable(['user_id', 'subject', 'status', 'last_reply_at', 'closed_at', 'closed_by', 'archived_at', 'archived_by'])]
 class Ticket extends Model
 {
     protected function casts(): array
@@ -17,6 +17,7 @@ class Ticket extends Model
             'status' => TicketStatusEnum::class,
             'last_reply_at' => 'datetime',
             'closed_at' => 'datetime',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -28,6 +29,11 @@ class Ticket extends Model
     public function closedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'closed_by');
+    }
+
+    public function archivedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'archived_by');
     }
 
     public function replies(): HasMany

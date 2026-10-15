@@ -12,6 +12,12 @@ class TaskResource extends JsonResource
         return [
             'id' => $this->id,
             'team_id' => $this->team_id,
+            'team' => $this->whenLoaded('team', fn () => $this->team === null ? null : [
+                'id' => $this->team->id,
+                'name' => $this->team->name,
+                'section' => $this->team->section,
+                'supervisor' => $this->team->supervisor ? ['id' => $this->team->supervisor->id, 'name' => $this->team->supervisor->name] : null,
+            ]),
             'title' => $this->title,
             'description' => $this->description,
             'status' => $this->status,
@@ -20,6 +26,7 @@ class TaskResource extends JsonResource
             'created_by' => $this->createdBy ? new UserResource($this->createdBy) : null,
             'files' => TaskFileResource::collection($this->whenLoaded('files')),
             'notes' => TaskNoteResource::collection($this->whenLoaded('notes')),
+            'created_at' => $this->created_at,
         ];
     }
 }

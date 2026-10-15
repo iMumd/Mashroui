@@ -17,7 +17,8 @@ class DiscussionController extends Controller
     {
         Gate::authorize('viewAny', Discussion::class);
 
-        $query = Discussion::with('project.team', 'project.department', 'project.specialization', 'supervisor');
+        // whereHas('project') يطبّق نطاق تخصص عضو اللجنة على المناقشات
+        $query = Discussion::with('project.team', 'project.department', 'project.specialization', 'supervisor')->whereHas('project');
 
         if ($request->filled('department_id')) {
             $query->whereHas('project', fn ($q) => $q->where('department_id', $request->integer('department_id')));

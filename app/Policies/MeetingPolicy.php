@@ -26,10 +26,12 @@ class MeetingPolicy
             && $this->teamMembership->belongsTo($user, $meeting->team);
     }
 
-    public function create(User $user): bool
+    /** إنشاء اجتماع لفريق: مشرفه أو أي طالب فيه (لا فرق أخرى) */
+    public function create(User $user, Team $team): bool
     {
         return $this->accessControl->can($user, 'meetings') === AccessLevelEnum::Full
-            && ($user->role === RoleEnum::Supervisor || $this->teamMembership->leadsAnyTeam($user));
+            && in_array($user->role, [RoleEnum::Supervisor, RoleEnum::Student], true)
+            && $this->teamMembership->belongsTo($user, $team);
     }
 
     public function update(User $user, Meeting $meeting): bool

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ProjectStatusEnum;
+use App\Models\Scopes\SpecializationScope;
 use App\Models\Scopes\TermScope;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'supervisor_id',
     'name',
     'description',
+    'types',
     'department_id',
     'specialization_id',
     'term_id',
@@ -28,6 +30,7 @@ class Project extends Model
     protected static function booted(): void
     {
         static::addGlobalScope(new TermScope);
+        static::addGlobalScope(new SpecializationScope);
     }
 
     protected function casts(): array
@@ -35,6 +38,7 @@ class Project extends Model
         return [
             'status' => ProjectStatusEnum::class,
             'is_featured' => 'boolean',
+            'types' => 'array',
             'completed_at' => 'datetime',
             'archived_at' => 'datetime',
         ];

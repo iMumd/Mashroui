@@ -8,10 +8,15 @@ use App\Models\User;
 
 class TeamMembership
 {
-    public function belongsTo(User $user, Team $team): bool
+    public function belongsTo(User $user, ?Team $team): bool
     {
         if (in_array($user->role, [RoleEnum::SuperAdmin, RoleEnum::Committee], true)) {
             return true;
+        }
+
+        // مهمة بلا فريق = مهمة لجنة الإشراف: للإدارة واللجنة فقط (الشرط أعلاه)
+        if ($team === null) {
+            return false;
         }
 
         if ($user->id === $team->supervisor_id || $user->id === $team->leader_id) {
@@ -25,6 +30,18 @@ class TeamMembership
     public function leadsAnyTeam(User $user): bool
     {
         return Team::where('leader_id', $user->id)->exists();
+    }
+
+    /** هل الطالب عضو في أي فريق (الحساب الأساسي أو عضو) — أي عضو يسلّم المقترح والتقرير النهائي */
+    public function inAnyTeam(User $user): bool
+    {
+        return Team::where('leader_id', $user->id)->orWhereHas('members', fn ($m) => $m->where('student_id', $user->id))->exists();
+    }
+
+    /** هل الطالب عضو في هذا الفريق تحديدًا (الحساب الأساسي أو عضو) */
+    public function isStudentOf(User $user, Team $team): bool
+    {
+        return $this->isLeaderOf($user, $team) || $team->members()->where('student_id', $user->id)->exists();
     }
 
     /** هل المستخدم هو القائد الحالي لهذا الفريق تحديدًا */

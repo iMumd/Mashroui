@@ -43,6 +43,19 @@ class FinalReportController extends Controller
         return Storage::response($finalReport->pdf_path, 'final-report.pdf');
     }
 
+    // POST /final-reports/{finalReport}/review — موافقة/رفض حسب المرحلة (المشرف ثم لجنة الإشراف)
+    public function review(Request $request, FinalReport $finalReport, FinalReportService $service)
+    {
+        Gate::authorize('view', $finalReport);
+
+        $data = $request->validate([
+            'decision' => ['required', 'in:approve,reject'],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        return new FinalReportResource($service->review($finalReport, $request->user(), $data['decision'] === 'approve', $data['note'] ?? null));
+    }
+
     public function store(Request $request, Project $project, FinalReportService $service)
     {
         Gate::authorize('create', FinalReport::class);

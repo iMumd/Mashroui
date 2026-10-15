@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\RoleEnum;
 use App\Models\Task;
 use App\Models\TaskNote;
 use App\Models\User;
@@ -13,9 +14,15 @@ class TaskNoteService
     {
         $team = $task->team()->with('members')->first();
 
-        $isMember = $author->id === $team->leader_id
-            || $author->id === $team->supervisor_id
-            || $team->members->contains('student_id', $author->id);
+        // الإدارة العامة تعلّق على أي مهمة أرسلتها أو تتابعها؛ مهمة بلا فريق يعلّق عليها المكلّف بها
+        // ومُنشئ المهمة (لجنة الإشراف) يعلّق على ما أرسله
+        $isMember = $author->role === RoleEnum::SuperAdmin
+            || $author->id === $task->created_by
+            || ($team === null
+                ? $task->isStaffAssignee($author)
+                : $author->id === $team->leader_id
+                    || $author->id === $team->supervisor_id
+                    || $team->members->contains('student_id', $author->id));
 
         if (! $isMember) {
             throw ValidationException::withMessages(['task_id' => 'هاي المهمة مش تبعك.']);

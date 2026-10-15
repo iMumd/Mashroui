@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\TicketStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Ticket;
+use App\Models\TicketReply;
 use App\Policies\TicketPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,12 @@ class TicketController extends Controller
             'status' => ['sometimes', Rule::enum(TicketStatusEnum::class)],
         ]);
 
-        $query = Ticket::with('user:id,name,role')->withCount('replies')->latest();
+        // آخر رسالة (صاحبها + مقتطف) لتمييز "بانتظار الرد" وعرض معاينة في القائمة
+        $last = fn (string $col) => TicketReply::select($col)->whereColumn('ticket_id', 'tickets.id')->latest('id')->limit(1);
+
+        $query = Ticket::with('user:id,name,role')->withCount('replies')
+            ->addSelect(['last_reply_user_id' => $last('user_id'), 'last_reply_body' => $last('body')])
+            ->latest();
 
         if (! app(TicketPolicy::class)->isSupportStaff($user)) {
             $query->where('user_id', $user->id);
@@ -66,7 +72,7 @@ class TicketController extends Controller
     {
         Gate::authorize('view', $ticket);
 
-        return response()->json($ticket->load('replies.user:id,name,role', 'user:id,name,role', 'closedBy:id,name'));
+        return response()->json($ticket->load('replies.user:id,name,role', 'user:id,name,role', 'closedBy:id,name', 'archivedBy:id,name'));
     }
 
     // POST /tickets/{ticket}/replies — رد على تذكرة مفتوحة
@@ -115,8 +121,46 @@ class TicketController extends Controller
             'status' => TicketStatusEnum::Open,
             'closed_at' => null,
             'closed_by' => null,
+            'archived_at' => null,
+            'archived_by' => null,
         ]);
 
         return response()->json($ticket->fresh());
+    }
+
+    // POST /tickets/{ticket}/archive — بعد رد الدعم: تُغلق وتخرج من الوارد
+    public function archive(Request $request, Ticket $ticket)
+    {
+        Gate::authorize('archive', $ticket);
+
+        $ticket->update([
+            'status' => TicketStatusEnum::Closed,
+            'closed_at' => $ticket->closed_at ?? now(),
+            'closed_by' => $ticket->closed_by ?? $request->user()->id,
+            'archived_at' => now(),
+            'archived_by' => $request->user()->id,
+        ]);
+
+        return response()->json($ticket->fresh());
+    }
+
+    // POST /tickets/{ticket}/unarchive — تعود للمغلقة
+    public function unarchive(Ticket $ticket)
+    {
+        Gate::authorize('unarchive', $ticket);
+
+        $ticket->update(['archived_at' => null, 'archived_by' => null]);
+
+        return response()->json($ticket->fresh());
+    }
+
+    // DELETE /tickets/{ticket} — حذف نهائي مع الردود (cascade)
+    public function destroy(Ticket $ticket)
+    {
+        Gate::authorize('delete', $ticket);
+
+        $ticket->delete();
+
+        return response()->noContent();
     }
 }

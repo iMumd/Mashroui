@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AssistantController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BulkNotifyController;
 use App\Http\Controllers\Api\CommitteeDashboardController;
+use App\Http\Controllers\Api\ComposeTemplateController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DiscussionController;
 use App\Http\Controllers\Api\DiscussionExportController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Api\EmailRelayController;
 use App\Http\Controllers\Api\FinalReportController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\MagicLoginController;
+use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\MessageDeliveryController;
 use App\Http\Controllers\Api\MessageTemplateController;
@@ -30,6 +32,7 @@ use App\Http\Controllers\Api\ProposalController;
 use App\Http\Controllers\Api\SpecializationController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\EvaluationController;
+use App\Http\Controllers\Api\EvaluationFormController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TaskFileController;
 use App\Http\Controllers\Api\TaskNoteController;
@@ -78,6 +81,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::middleware('force-password-change')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::get('/me/abilities', [AuthController::class, 'abilities']);
+        Route::patch('/me', [MeController::class, 'update']);
+        Route::post('/me/avatar', [MeController::class, 'avatar']);
         Route::post('/users', [UserController::class, 'store'])->middleware('term');
         Route::get('/users/trashed', [UserController::class, 'trashed']);
         Route::patch('/users/{user}', [UserController::class, 'update']);
@@ -94,6 +99,12 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/message-templates', [MessageTemplateController::class, 'store']);
         Route::put('/message-templates/{messageTemplate}', [MessageTemplateController::class, 'update']);
         Route::delete('/message-templates/{messageTemplate}', [MessageTemplateController::class, 'destroy']);
+
+        Route::get('/compose-templates', [ComposeTemplateController::class, 'index']);
+        Route::get('/compose-templates/files/{file}/download', [ComposeTemplateController::class, 'downloadFile']);
+        Route::post('/compose-templates', [ComposeTemplateController::class, 'store']);
+        Route::put('/compose-templates/{composeTemplate}', [ComposeTemplateController::class, 'update']);
+        Route::delete('/compose-templates/{composeTemplate}', [ComposeTemplateController::class, 'destroy']);
 
         Route::apiResource('departments', DepartmentController::class);
         Route::apiResource('specializations', SpecializationController::class);
@@ -124,6 +135,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/tickets/{ticket}/replies', [TicketController::class, 'reply']);
         Route::post('/tickets/{ticket}/close', [TicketController::class, 'close']);
         Route::post('/tickets/{ticket}/reopen', [TicketController::class, 'reopen']);
+        Route::post('/tickets/{ticket}/archive', [TicketController::class, 'archive']);
+        Route::post('/tickets/{ticket}/unarchive', [TicketController::class, 'unarchive']);
+        Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy']);
 
         Route::middleware('term')->group(function () {
             Route::get('/users', [UserController::class, 'index']);
@@ -141,6 +155,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::post('/teams/import/preview', [TeamImportController::class, 'preview']);
             Route::post('/teams/import/confirm', [TeamImportController::class, 'confirm']);
 
+            Route::get('/proposals', [ProposalController::class, 'index']);
             Route::post('/proposals', [ProposalController::class, 'store']);
             Route::get('/proposals/{proposal}', [ProposalController::class, 'show']);
             Route::get('/proposals/{proposal}/history', [ProposalController::class, 'history']);
@@ -162,6 +177,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::post('/projects/{project}/final-reports', [FinalReportController::class, 'store']);
             Route::get('/final-reports/{finalReport}/download', [FinalReportController::class, 'download']);
             Route::get('/final-reports/{finalReport}/download-link', [FinalReportController::class, 'downloadLink']);
+            Route::post('/final-reports/{finalReport}/review', [FinalReportController::class, 'review']);
 
             Route::get('/teams/{team}/meetings', [MeetingController::class, 'index']);
             Route::post('/teams/{team}/meetings', [MeetingController::class, 'store']);
@@ -179,6 +195,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::get('/teams/{team}/tasks/trashed', [TaskController::class, 'trashed']);
             Route::get('/teams/{team}/tasks', [TaskController::class, 'index']);
             Route::post('/teams/{team}/tasks', [TaskController::class, 'store']);
+            Route::get('/tasks', [TaskController::class, 'overview']);
+            Route::post('/staff/tasks', [TaskController::class, 'storeForStaff']);
+            Route::post('/tasks/batch', [TaskController::class, 'storeForTeams']);
             Route::post('/tasks/{task}/restore', [TaskController::class, 'restore']);
             Route::delete('/tasks/{task}/force', [TaskController::class, 'forceDelete']);
             Route::get('/tasks/{task}', [TaskController::class, 'show']);
@@ -194,8 +213,20 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::post('/tasks/{task}/notes', [TaskNoteController::class, 'store']);
 
             Route::get('/evaluations', [EvaluationController::class, 'index']);
+            Route::get('/evaluations/examining', [EvaluationFormController::class, 'examining']);
+            Route::get('/evaluation-forms', [EvaluationFormController::class, 'index']);
+            Route::post('/evaluation-forms', [EvaluationFormController::class, 'store']);
+            Route::put('/evaluation-forms/{form}', [EvaluationFormController::class, 'update']);
+            Route::delete('/evaluation-forms/{form}', [EvaluationFormController::class, 'destroy']);
+            Route::get('/teams/{team}/evaluation', [EvaluationFormController::class, 'sheet']);
+            Route::put('/teams/{team}/evaluation/{form}', [EvaluationFormController::class, 'submit']);
 
             Route::get('/announcements', [AnnouncementController::class, 'inbox']);
+            Route::post('/announcements/send', [AnnouncementController::class, 'send']);
+            Route::post('/announcements/ratings', [AnnouncementController::class, 'sendRatings']);
+            Route::get('/announcements/sent', [AnnouncementController::class, 'sent']);
+            Route::delete('/announcements/batch/{batch}', [AnnouncementController::class, 'destroyBatch']);
+            Route::get('/announcements/attachments/{attachment}/download', [AnnouncementController::class, 'downloadAttachment']);
             Route::post('/announcements/supervisor', [AnnouncementController::class, 'storeForSupervisor']);
             Route::get('/teams/{team}/announcements', [AnnouncementController::class, 'indexForTeam']);
             Route::post('/teams/{team}/announcements', [AnnouncementController::class, 'storeForTeam']);

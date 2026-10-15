@@ -43,7 +43,8 @@ class SendFileUploadedNotification
     {
         $team = $file->task->team;
 
-        $recipients = collect([$team->leader_id, $team->supervisor_id])
+        // مهمة لجنة الإشراف (بلا فريق): الإشعار لمن أرسل المهمة
+        $recipients = collect($team ? [$team->leader_id, $team->supervisor_id] : [$file->task->created_by])
             ->filter()
             ->unique()
             ->reject(fn ($id) => $id === $uploader->id);

@@ -16,8 +16,9 @@ class TaskFileService
     {
         $team = $task->team()->with('members')->first();
 
-        $isMember = $uploader->id === $team->leader_id
-            || $team->members->contains('student_id', $uploader->id);
+        // مُنشئ المهمة (الإدارة العامة / لجنة الإشراف) يرفق ملفاتها، ولو كانت مهمة بلا فريق
+        $isMember = $uploader->id === $task->created_by
+            || ($team && ($uploader->id === $team->leader_id || $team->members->contains('student_id', $uploader->id)));
 
         if (! $isMember) {
             throw ValidationException::withMessages(['task_id' => 'هاي المهمة مش تبعك.']);

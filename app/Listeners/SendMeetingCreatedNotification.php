@@ -10,7 +10,7 @@ use Throwable;
 
 class SendMeetingCreatedNotification implements ShouldQueue
 {
-    public function handle(MeetingCreated $event, WhatsappService $whatsapp): void
+    public function handle(MeetingCreated $event): void
     {
         $meeting = $event->meeting;
         $team = $meeting->team;
@@ -33,7 +33,8 @@ class SendMeetingCreatedNotification implements ShouldQueue
 
         if ($recipient->whatsapp) {
             try {
-                $whatsapp->send($recipient->whatsapp, $message);
+                // المستمع في الطابور لا يقبل حقن تبعيات إضافية في handle — تُحل الخدمة هنا
+                app(WhatsappService::class)->send($recipient->whatsapp, $message);
             } catch (Throwable $e) {
                 report($e);
             }

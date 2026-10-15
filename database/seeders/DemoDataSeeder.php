@@ -8,6 +8,7 @@ use App\Enums\ProposalStatusEnum;
 use App\Enums\RoleEnum;
 use App\Enums\TaskStatusEnum;
 use App\Models\AcademicTerm;
+use App\Models\AuditLog;
 use App\Models\Discussion;
 use App\Models\FinalReport;
 use App\Models\Meeting;
@@ -84,12 +85,8 @@ class DemoDataSeeder extends Seeder
             description: 'نظام ويب لإدارة مخزون المحال التجارية الصغيرة، يدعم تتبّع المنتجات عبر الباركود، تنبيهات النفاد، وتقارير المبيعات اللحظية.',
             status: ProjectStatusEnum::InProgress,
         );
-        $this->approvedProposal($project1, $leaderMain, $supervisorMain,
-            'مقترح-مخزون-ذكي.pdf',
-            'المحال الصغيرة تعتمد على السجلات الورقية أو ملفات إكسل لإدارة المخزون، ما يسبب أخطاء بالجرد ونفاد مفاجئ للمنتجات.',
-            'نظام ويب متكامل يربط نقاط البيع بالمخزون مباشرة، مع مسح الباركود وتنبيهات تلقائية عند اقتراب النفاد.',
-            'مسح باركود، تقارير مبيعات، تنبيهات نفاد، دعم أكثر من فرع.',
-        );
+        // الفريق الرئيسي لحسابي التجربة (leader@ / student@): بلا مقترح ولا تقرير نهائي — ليجرّب الطالب التسليم من البداية
+
         $this->tasks($team1, $leaderMain, [
             ['تحليل المتطلبات وتصميم قاعدة البيانات', TaskStatusEnum::Done],
             ['تصميم واجهات المستخدم (UI/UX)', TaskStatusEnum::Done],
@@ -143,6 +140,10 @@ class DemoDataSeeder extends Seeder
             'استخدام تقنية الواقع المعزز لعرض الكلمة ومعناها فوق الجسم الحقيقي مباشرة عبر الكاميرا.',
             'تعلّم تفاعلي، دعم عدة لغات، تتبّع تقدّم المستخدم.',
             'النطاق واسع جداً لمدة الفصل المتاحة، يرجى تضييق التركيز على لغة واحدة ومجموعة مفردات محدودة أولاً.',
+            [
+                'المقترح يفتقر لتحديد الفئة المستهدفة بوضوح، ولا توجد دراسة للتطبيقات المنافسة.',
+                'تم تحديد الفئة المستهدفة، لكن آلية التعرّف على الأجسام بالكاميرا غير موضّحة تقنياً.',
+            ],
         );
 
         // ===== فريق 4: إنتاج محتوى تعليمي — مكتمل =====
@@ -373,13 +374,31 @@ class DemoDataSeeder extends Seeder
         return $year.str_pad((string) (500 + $this->studentSeq * 13), 5, '0', STR_PAD_LEFT);
     }
 
+    /** أنواع مشاريع تجريبية بالتناوب (قد يكون للمشروع أكثر من نوع) */
+    public static function demoTypes(): array
+    {
+        $samples = [
+            ['تطوير ويب', 'أنظمة إدارة'], ['تصميم', 'واقع افتراضي VR', 'ألعاب'], ['تطبيقات موبايل'],
+            ['ذكاء اصطناعي', 'تطوير ويب'], ['تصميم', 'وسائط متعددة'], ['إنترنت الأشياء', 'تطبيقات موبايل'],
+            ['واقع معزز AR', 'تصميم'], ['أمن معلومات', 'شبكات'],
+        ];
+
+        return $samples[Project::withoutGlobalScopes()->count() % count($samples)];
+    }
+
+    /** رقم الشعبة = رقم المجموعة: تسلسلي بلا شرطة يبدأ من 100 عبر كل الفصول (100، 101، 102…) */
+    public static function nextSection(): string
+    {
+        return (string) (100 + Team::withoutGlobalScopes()->withTrashed()->count());
+    }
+
     /** @param  User[]  $members */
     protected function makeTeam(
         string $name, User $supervisor, User $leader, array $members, Specialization $spec,
         string $projectName, string $description, ProjectStatusEnum $status, ?\Illuminate\Support\Carbon $completedAt = null,
     ): array {
         $team = Team::create([
-            'name' => $name, 'supervisor_id' => $supervisor->id,
+            'name' => $name, 'section' => $this->nextSection(), 'supervisor_id' => $supervisor->id,
             'specialization_id' => $spec->id, 'term_id' => $this->termId, 'leader_id' => $leader->id,
         ]);
         TeamMember::create(['team_id' => $team->id, 'student_id' => $leader->id, 'is_leader' => true]);
@@ -389,7 +408,7 @@ class DemoDataSeeder extends Seeder
 
         $project = Project::create([
             'team_id' => $team->id, 'supervisor_id' => $supervisor->id, 'name' => $projectName,
-            'description' => $description, 'department_id' => $spec->department_id, 'specialization_id' => $spec->id,
+            'description' => $description, 'types' => self::demoTypes(), 'department_id' => $spec->department_id, 'specialization_id' => $spec->id,
             'term_id' => $this->termId, 'status' => $status,
             'completed_at' => $completedAt,
         ]);
@@ -417,14 +436,32 @@ class DemoDataSeeder extends Seeder
         ]);
     }
 
-    protected function rejectedProposal(Project $project, User $leader, User $supervisor, string $fileName, string $problems, string $solutions, string $features, string $reason): void
+    protected function rejectedProposal(Project $project, User $leader, User $supervisor, string $fileName, string $problems, string $solutions, string $features, string $reason, array $earlierReasons = []): void
     {
-        Proposal::create([
+        $proposal = Proposal::create([
             'project_id' => $project->id, 'name' => $project->name, 'description' => $project->description,
             'problems' => $problems, 'solutions' => $solutions, 'features_value' => $features,
             'pdf_path' => $this->placeholderPdf('proposals', $fileName),
             'status' => ProposalStatusEnum::Rejected, 'rejection_reason' => $reason,
+            'rejection_count' => count($earlierReasons) + 1,
             'submitted_by' => $leader->id, 'reviewed_by' => $supervisor->id,
+        ]);
+
+        // سجل المحاولات (نفس صيغة ProposalService): تقديم ← رفض لكل محاولة، بفاصل أسبوع بين المحاولات
+        $at = now()->subWeeks(count($earlierReasons) + 1);
+        foreach ([...$earlierReasons, $reason] as $i => $why) {
+            $attempt = $i + 1;
+            $this->proposalLog($leader, $proposal, $attempt === 1 ? 'submit' : 'resubmit', ['attempt' => $attempt, 'name' => $proposal->name], $at);
+            $this->proposalLog($supervisor, $proposal, 'reject', ['reason' => $why, 'rejection_count' => $attempt], $at->copy()->addDays(2));
+            $at->addWeek();
+        }
+    }
+
+    protected function proposalLog(User $user, Proposal $proposal, string $action, array $meta, $at): void
+    {
+        AuditLog::forceCreate([
+            'user_id' => $user->id, 'action' => $action, 'entity' => 'proposal', 'entity_id' => $proposal->id,
+            'meta' => $meta, 'created_at' => $at, 'updated_at' => $at,
         ]);
     }
 

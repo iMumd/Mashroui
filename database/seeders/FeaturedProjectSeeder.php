@@ -54,6 +54,7 @@ class FeaturedProjectSeeder extends Seeder
 
         $team = Team::create([
             'name' => 'فريق العرض المميز',
+            'section' => DemoDataSeeder::nextSection(),
             'supervisor_id' => $supervisor->id,
             'specialization_id' => $specialization->id,
             'term_id' => $termId,
@@ -89,6 +90,7 @@ class FeaturedProjectSeeder extends Seeder
             'supervisor_id' => $supervisor->id,
             'name' => 'نظام ذكي لتسجيل حضور الطلاب بتقنية التعرف على الوجه',
             'description' => 'تطبيق ويب متكامل يتيح رصد حضور الطلاب تلقائياً داخل القاعات باستخدام تقنيات الرؤية الحاسوبية، مع لوحة تحكم لإدارة التقارير والإحصائيات لحظياً.',
+            'types' => ['ذكاء اصطناعي', 'تطوير ويب'],
             'department_id' => $specialization->department_id,
             'specialization_id' => $specialization->id,
             'term_id' => $termId,

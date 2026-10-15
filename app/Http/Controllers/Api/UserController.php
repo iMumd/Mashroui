@@ -30,7 +30,8 @@ class UserController extends Controller
         if ($actor->role === RoleEnum::SuperAdmin) {
             $allowedRoles = [RoleEnum::Student->value, RoleEnum::Supervisor->value, RoleEnum::Committee->value];
         } elseif ($actor->role === RoleEnum::Committee) {
-            $allowedRoles = [RoleEnum::Student->value, RoleEnum::Supervisor->value];
+            // أعضاء اللجنة للقراءة فقط: مستلمو التكليفات والإعلانات (الإنشاء والتعديل للإدارة العامة)
+            $allowedRoles = [RoleEnum::Student->value, RoleEnum::Supervisor->value, RoleEnum::Committee->value];
         } else {
             abort(403);
         }
@@ -40,11 +41,15 @@ class UserController extends Controller
             'unassigned' => ['sometimes', 'boolean'],
             'gender' => ['sometimes', Rule::enum(GenderEnum::class)],
             'region' => ['sometimes', Rule::enum(RegionEnum::class)],
+            'specialization_id' => ['sometimes', 'integer', 'exists:specializations,id'],
+            'search' => ['sometimes', 'string', 'max:100'],
         ]);
 
         $termId = $currentTerm->get();
 
-        $query = User::where('role', $data['role'])->where('term_id', $termId);
+        // الطلاب مرتبطون بالسنة الدراسية؛ حسابات المشرفين واللجنة عابرة للسنوات (بلا term_id)
+        $query = User::where('role', $data['role'])
+            ->when($data['role'] === RoleEnum::Student->value, fn ($q) => $q->where('term_id', $termId));
 
         if ($data['role'] === RoleEnum::Student->value && $request->boolean('unassigned')) {
             $assignedIds = TeamMember::whereHas('team', fn ($q) => $q->where('term_id', $termId))->pluck('student_id');
@@ -57,6 +62,33 @@ class UserController extends Controller
         }
         if (isset($data['region'])) {
             $query->where('region', $data['region']);
+        }
+
+        // عضو اللجنة المرتبط بتخصص: الطلاب والمشرفون من تخصصه فقط
+        $viewer = $request->user();
+        if ($viewer->role === RoleEnum::Committee && $viewer->specialization_id && in_array($data['role'], [RoleEnum::Student->value, RoleEnum::Supervisor->value], true)) {
+            $data['specialization_id'] = $viewer->specialization_id;
+        }
+
+        // التخصص: تخصص الحساب، وللمشرف أيضًا تخصصات المجموعات التي يشرف عليها
+        if (isset($data['specialization_id'])) {
+            $specId = $data['specialization_id'];
+            $query->where(fn ($q) => $q->where('specialization_id', $specId)
+                ->orWhereHas('supervisedTeams', fn ($t) => $t->where('specialization_id', $specId)));
+        }
+
+        // بحث بالاسم أو الرقم الجامعي/الوظيفي أو البريد
+        if (! empty($data['search'])) {
+            $term = '%'.$data['search'].'%';
+            $query->where(fn ($q) => $q->where('name', 'like', $term)
+                ->orWhere('university_number', 'like', $term)
+                ->orWhere('employee_number', 'like', $term)
+                ->orWhere('email', 'like', $term));
+        }
+
+        // للمشرفين: عدد مهام فرقهم وآخر نشاط (آخر استخدام لجلسة الدخول)
+        if ($data['role'] === RoleEnum::Supervisor->value) {
+            $query->withCount('supervisedTasks')->withMax('tokens', 'last_used_at');
         }
 
         $users = $query->orderBy('name')->get();

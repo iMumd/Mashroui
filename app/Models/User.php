@@ -10,9 +10,11 @@ use App\Enums\UserStatusEnum;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -34,12 +36,21 @@ use Laravel\Sanctum\HasApiTokens;
     'restricted_reason',
     'deleted_reason',
     'must_change_password',
+    'avatar_path',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+
+    protected $appends = ['avatar_url'];
+
+    /** رابط صورة الملف التعريفي (أو null) — asset() يتبع عنوان الطلب الحالي */
+    protected function avatarUrl(): Attribute
+    {
+        return Attribute::get(fn () => $this->avatar_path ? asset('storage/'.$this->avatar_path) : null);
+    }
 
     /**
      * Get the attributes that should be cast.
@@ -72,6 +83,12 @@ class User extends Authenticatable
     public function inviteLinks(): HasMany
     {
         return $this->hasMany(InviteLink::class);
+    }
+
+    /** مهام كل الفرق التي يشرف عليها */
+    public function supervisedTasks(): HasManyThrough
+    {
+        return $this->hasManyThrough(Task::class, Team::class, 'supervisor_id', 'team_id');
     }
 
     public function supervisedTeams(): HasMany

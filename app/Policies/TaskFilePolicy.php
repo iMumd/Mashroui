@@ -31,4 +31,10 @@ class TaskFilePolicy
         return $this->accessControl->can($user, 'tasks') === AccessLevelEnum::Full
             && $user->role === RoleEnum::Student;
     }
+
+    /** الطالب يرفع ملفات على المهام المنتسب لها فقط */
+    public function upload(User $user, Task $task): bool
+    {
+        return $this->create($user) && $task->isStudentAssignee($user);
+    }
 }
