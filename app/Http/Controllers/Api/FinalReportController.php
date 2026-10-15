@@ -63,11 +63,12 @@ class FinalReportController extends Controller
         $data = $request->validate([
             'file' => ['required', 'file', 'mimes:pdf', 'max:102400'],
             'video_url' => ['required', 'url', 'max:255'],
+            'cover' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120'],
         ]);
 
         $data['project_id'] = $project->id;
 
-        $finalReport = $service->upload($data, $request->file('file'), $request->user());
+        $finalReport = $service->upload($data, $request->file('file'), $request->user(), $request->file('cover'));
 
         return response()->json($finalReport, 201);
     }

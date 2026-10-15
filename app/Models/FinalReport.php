@@ -3,17 +3,20 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** التقرير النهائي ومسار اعتماده قبل الأرشفة: المشرف ← لجنة الإشراف (review_status) */
 #[Fillable([
-    'project_id', 'pdf_path', 'video_url', 'uploaded_by',
+    'project_id', 'pdf_path', 'video_url', 'cover_path', 'uploaded_by',
     'review_status', 'supervisor_reviewed_by', 'supervisor_reviewed_at', 'committee_reviewed_by', 'committee_reviewed_at', 'review_note',
 ])]
 class FinalReport extends Model
 {
     protected $attributes = ['review_status' => 'pending_supervisor'];
+
+    protected $appends = ['cover_url'];
 
     // أسماء المراجعين تظهر مع التقرير أينما حُمّل (الفرق، المشروع، الأرشيف)
     protected $with = ['supervisorReviewer:id,name', 'committeeReviewer:id,name'];
@@ -21,6 +24,12 @@ class FinalReport extends Model
     protected function casts(): array
     {
         return ['supervisor_reviewed_at' => 'datetime', 'committee_reviewed_at' => 'datetime'];
+    }
+
+    /** رابط صورة المشروع العام (قرص public) أو null */
+    protected function coverUrl(): Attribute
+    {
+        return Attribute::get(fn () => $this->cover_path ? asset('storage/'.$this->cover_path) : null);
     }
 
     public function project(): BelongsTo
