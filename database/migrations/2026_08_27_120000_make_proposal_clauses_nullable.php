@@ -1,19 +1,25 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * نستخدم Schema builder بدل DB::statement('ALTER ... MODIFY ...') المخصص لـ MySQL
+     * حتى تعمل الهجرة على جميع المحركات (MySQL في الإنتاج وSQLite في الاختبارات).
      */
     public function up(): void
     {
-        DB::statement('ALTER TABLE proposals MODIFY description TEXT NULL');
-        DB::statement('ALTER TABLE proposals MODIFY problems TEXT NULL');
-        DB::statement('ALTER TABLE proposals MODIFY solutions TEXT NULL');
-        DB::statement('ALTER TABLE proposals MODIFY features_value TEXT NULL');
+        Schema::table('proposals', function (Blueprint $table) {
+            $table->text('description')->nullable()->change();
+            $table->text('problems')->nullable()->change();
+            $table->text('solutions')->nullable()->change();
+            $table->text('features_value')->nullable()->change();
+        });
     }
 
     /**
@@ -21,9 +27,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE proposals MODIFY description TEXT NOT NULL");
-        DB::statement("ALTER TABLE proposals MODIFY problems TEXT NOT NULL");
-        DB::statement("ALTER TABLE proposals MODIFY solutions TEXT NOT NULL");
-        DB::statement("ALTER TABLE proposals MODIFY features_value TEXT NOT NULL");
+        Schema::table('proposals', function (Blueprint $table) {
+            $table->text('description')->nullable(false)->change();
+            $table->text('problems')->nullable(false)->change();
+            $table->text('solutions')->nullable(false)->change();
+            $table->text('features_value')->nullable(false)->change();
+        });
     }
 };
