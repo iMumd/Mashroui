@@ -15,7 +15,7 @@ use Illuminate\Validation\ValidationException;
 
 class FinalReportService
 {
-    public function upload(array $data, UploadedFile $file, User $leader): FinalReport
+    public function upload(array $data, UploadedFile $file, User $leader, ?UploadedFile $cover = null): FinalReport
     {
         $project = Project::findOrFail($data['project_id']);
 
@@ -28,6 +28,8 @@ class FinalReportService
             'project_id' => $project->id,
             'pdf_path' => Storage::putFile('final_reports', $file),
             'video_url' => $data['video_url'] ?? null,
+            // صورة المشروع عامة (تظهر في المعرض) فتُحفظ على قرص public
+            'cover_path' => $cover?->store('project_covers', 'public'),
             'uploaded_by' => $leader->id,
         ]);
 

@@ -104,6 +104,7 @@ class ProposalController extends Controller
                 'final_reports' => $p->project ? $p->project->finalReports->sortByDesc('created_at')->map(fn ($r) => [
                     'id' => $r->id,
                     'video_url' => $r->video_url,
+                    'cover_url' => $r->cover_url,
                     'created_at' => $r->created_at,
                     'uploaded_by' => $r->uploadedBy?->name,
                 ])->values() : [],
