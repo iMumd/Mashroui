@@ -9,6 +9,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['team_id', 'student_id', 'supervisor_id', 'score', 'supervisor_score', 'committee_score', 'notes'])]
 class Evaluation extends Model
 {
+    /**
+     * توحيد تنسيق الدرجات كـ decimal(…,2) عبر كل المحركات (MySQL يرجّعها نصًا "35.00"،
+     * بينما SQLite يرجّع 35)، حتى تتطابق مخرجات الـ API ونتائج التقييم في كل البيئات.
+     */
+    protected function casts(): array
+    {
+        return [
+            'score' => 'decimal:2',
+            'supervisor_score' => 'decimal:2',
+            'committee_score' => 'decimal:2',
+        ];
+    }
+
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
