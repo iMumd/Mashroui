@@ -2,21 +2,36 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TeamResource;
 use App\Models\AuditLog;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Services\TeamService;
+use App\Support\Rbac\TeamMembership;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class TeamController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return TeamResource::collection(Team::with('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports')->get());
+        $user = $request->user();
+        $query = Team::with('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports');
+
+        // الإدارة واللجنة يرون الكل (اللجنة مقيّدة أصلًا بتخصصها عبر SpecializationScope)؛
+        // المشرف والطالب يرون فرقهم فقط — لا يُعتمد على تقييد الواجهة وحده.
+        if (! in_array($user->role, [RoleEnum::SuperAdmin, RoleEnum::Committee], true)) {
+            $query->where(function ($q) use ($user) {
+                $q->where('supervisor_id', $user->id)
+                    ->orWhere('leader_id', $user->id)
+                    ->orWhereHas('members', fn ($m) => $m->where('student_id', $user->id));
+            });
+        }
+
+        return TeamResource::collection($query->get());
     }
 
     public function store(Request $request, TeamService $teamService)
@@ -41,8 +56,11 @@ class TeamController extends Controller
         return (new TeamResource($team->load('supervisor', 'leader')))->response()->setStatusCode(201);
     }
 
-    public function show(Team $team)
+    public function show(Request $request, Team $team, TeamMembership $membership)
     {
+        // منع تعداد/قراءة فرق الآخرين: المشرف والطالب لفرقهم فقط، الإدارة واللجنة ضمن نطاقهم.
+        abort_unless($membership->belongsTo($request->user(), $team), 403);
+
         return new TeamResource($team->load('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports'));
     }
 
