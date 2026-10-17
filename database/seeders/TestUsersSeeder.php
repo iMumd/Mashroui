@@ -20,6 +20,8 @@ class TestUsersSeeder extends Seeder
             'email' => 'committee@ucas.edu.ps',
             'password' => 'password',
             'role' => RoleEnum::Committee,
+            // عضو اللجنة مرتبط بتخصص حتى يرى مجموعات/مشاريع/مقترحات تخصصه فقط (SpecializationScope)
+            'specialization_id' => $specializationId,
             'whatsapp' => '970569845112',
             'employee_number' => 'EMP-1002',
         ]);

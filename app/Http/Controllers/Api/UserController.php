@@ -292,7 +292,9 @@ class UserController extends Controller
             'university_number' => ['nullable', 'string', 'max:30'],
             'gender' => ['nullable', Rule::enum(GenderEnum::class)],
             'region' => ['nullable', Rule::enum(RegionEnum::class)],
-            'specialization_id' => ['nullable', 'exists:specializations,id'],
+            // عضو اللجنة لا بد أن يُربط بتخصص عند الإنشاء حتى يرى مجموعات/مشاريع تخصصه فقط
+            // (SpecializationScope يعمل فقط عند وجود specialization_id)؛ توسيعه إلى "الكل" قرار لاحق للإدارة.
+            'specialization_id' => ['nullable', 'exists:specializations,id', 'required_if:role,'.RoleEnum::Committee->value],
         ]);
 
         $expectedDomain = $data['role'] === RoleEnum::Student->value ? CollegeEmail::STUDENT_DOMAIN : CollegeEmail::STAFF_DOMAIN;
