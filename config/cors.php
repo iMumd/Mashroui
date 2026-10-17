@@ -1,25 +1,30 @@
 <?php
 
-return [
+/*
+|--------------------------------------------------------------------------
+| Cross-Origin Resource Sharing (CORS) Configuration
+|--------------------------------------------------------------------------
+|
+| يقتصر الوصول عبر المصادر (CORS) على واجهة مسار فقط بدل الافتراضي "*".
+| المصادقة عبر Bearer token (وليست كوكيز)، لذا supports_credentials = false.
+| في بيئة التطوير (local) تُضاف مصادر فيتي المحلية حتى يعمل تسجيل الدخول من المتصفح.
+|
+*/
 
-    /*
-    |--------------------------------------------------------------------------
-    | Cross-Origin Resource Sharing (CORS) Configuration
-    |--------------------------------------------------------------------------
-    |
-    | يقتصر الوصول عبر المصادر (CORS) على واجهة مسار فقط بدل الافتراضي "*".
-    | المصادقة عبر Bearer token (وليست كوكيز)، لذا supports_credentials = false.
-    | أضف مصادر تطوير محلية هنا عند الحاجة.
-    |
-    */
+$origins = ['https://masar.slidd.app'];
+
+if (env('APP_ENV') === 'local') {
+    $origins[] = 'http://localhost:5173';
+    $origins[] = 'http://127.0.0.1:5173';
+}
+
+return [
 
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'https://masar.slidd.app',
-    ],
+    'allowed_origins' => $origins,
 
     'allowed_origins_patterns' => [],
 
