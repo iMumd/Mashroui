@@ -326,13 +326,16 @@ class UserController extends Controller
             'whatsapp' => ['nullable', new WhatsappNumber],
             'employee_number' => ['nullable', 'string', 'max:30'],
             'university_number' => ['nullable', 'string', 'max:30'],
-            'gender' => ['nullable', Rule::enum(GenderEnum::class)],
+            // جنس الطالب إجباري حتى يظهر في قائمة الطلاب/الطالبات الصحيحة (التصنيف يعتمد عليه)
+            'gender' => ['nullable', Rule::enum(GenderEnum::class), 'required_if:role,'.RoleEnum::Student->value],
             'region' => ['nullable', Rule::enum(RegionEnum::class)],
             // عضو اللجنة لا بد أن يُربط بتخصص واحد على الأقل (حتى تخصصين) حتى يرى مجموعات/مشاريع تخصصاته فقط
             // (SpecializationScope يعمل فقط عند وجود تخصصات)؛ توسيعه إلى "الكل" قرار لاحق للإدارة.
             'specialization_id' => ['nullable', 'exists:specializations,id'],
             'specialization_ids' => ['nullable', 'array', 'max:2'],
             'specialization_ids.*' => ['integer', 'exists:specializations,id'],
+        ], [
+            'gender.required_if' => 'جنس الطالب (طالب/طالبة) مطلوب.',
         ]);
 
         $expectedDomain = $data['role'] === RoleEnum::Student->value ? CollegeEmail::STUDENT_DOMAIN : CollegeEmail::STAFF_DOMAIN;
