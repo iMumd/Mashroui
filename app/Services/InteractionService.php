@@ -43,7 +43,7 @@ class InteractionService
     /** ملخّص تفاعل مشرف عبر كل فرقه */
     public function forSupervisor(User $supervisor): array
     {
-        $teams = Team::where('supervisor_id', $supervisor->id)->with('project', 'members')->get();
+        $teams = Team::where('supervisor_id', $supervisor->id)->with('project', 'members.student')->get();
 
         $perTeam = $teams->map(fn (Team $team) => [
             'team' => [
@@ -51,6 +51,12 @@ class InteractionService
                 'name' => $team->name,
                 'section' => $team->section,
                 'members_count' => $team->members->count(),
+                'members' => $team->members->map(fn ($m) => [
+                    'id' => $m->student_id,
+                    'name' => $m->student?->name,
+                    'region' => $m->student?->region,
+                    'is_leader' => (bool) $m->is_leader,
+                ])->values()->all(),
             ],
             'project' => $team->project ? [
                 'id' => $team->project->id,
