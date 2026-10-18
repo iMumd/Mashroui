@@ -232,7 +232,7 @@ class UserController extends Controller
     {
         $this->authorizeManageTarget($request, $user);
 
-        $password = $this->generateSafePassword();
+        $password = $this->generateMemberPassword($user);
 
         $user->update([
             'password' => $password,
@@ -265,6 +265,19 @@ class UserController extends Controller
         }
 
         return $password;
+    }
+
+    /**
+     * كلمة سر بسيطة وسهلة التمرير يدويًا: اسم المستخدم من البريد + 5 أرقام عشوائية + اللاحقة !@#
+     * مثال: malghoul@smail.ucas.edu.ps -> malghoul48213!@#
+     */
+    private function generateMemberPassword(User $user): string
+    {
+        $local = strtolower((string) strstr((string) $user->email, '@', true));
+        $local = preg_replace('/[^a-z0-9]/', '', $local) ?: 'user';
+        $digits = str_pad((string) random_int(0, 99999), 5, '0', STR_PAD_LEFT);
+
+        return $local.$digits.'!@#';
     }
 
     /**
