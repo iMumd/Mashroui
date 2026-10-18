@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\UserStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Models\MagicLoginLink;
 
@@ -22,6 +23,9 @@ class MagicLoginController extends Controller
         if ($link->expires_at && $link->expires_at->isPast()) {
             abort(410, 'انتهت صلاحية رابط الدخول.');
         }
+
+        // الحساب الموقوف لا يُسمح له بالدخول عبر الرابط المباشر أيضًا
+        abort_if($link->user->status === UserStatusEnum::Restricted, 403, 'تم إيقاف هذا الحساب، يرجى التواصل مع العمادة.');
 
         $accessToken = $link->user->createToken('magic-login')->plainTextToken;
 

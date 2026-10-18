@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\RoleEnum;
+use App\Enums\UserStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Models\InviteLink;
 use App\Models\User;
@@ -42,6 +43,9 @@ class InviteController extends Controller
         if ($invite->expires_at->isPast()) {
             abort(410, 'انتهت صلاحية رابط الدعوة (٣ أيام من إصداره). اطلب/اطلبي رابط دعوة جديد من المشرف.');
         }
+
+        // الحساب الموقوف لا يُفعَّل عبر رابط الدعوة/إعادة التعيين (لا تُعيَّن كلمة مرور ولا يُصدَر توكن دخول)
+        abort_if($invite->user->status === UserStatusEnum::Restricted, 403, 'تم إيقاف هذا الحساب، يرجى التواصل مع العمادة.');
 
         $data = $request->validate([
             'password' => ['required', 'string', 'min:8', 'confirmed'],
