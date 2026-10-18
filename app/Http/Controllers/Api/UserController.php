@@ -302,6 +302,13 @@ class UserController extends Controller
             throw ValidationException::withMessages(['email' => "البريد الإلكتروني يجب أن ينتهي بـ @{$expectedDomain}."]);
         }
 
+        // عضو اللجنة المرتبط بتخصص: الطلاب والمشرفون الذين يضيفهم يُربطون بتخصصه تلقائيًا
+        // حتى يظهروا له في قائمة الأعضاء ويتمكّن من إدارتهم (قراءة اللجنة مقيّدة بتخصصها في index()).
+        if ($actor->role === RoleEnum::Committee && $actor->specialization_id
+            && in_array($data['role'], [RoleEnum::Student->value, RoleEnum::Supervisor->value], true)) {
+            $data['specialization_id'] = $actor->specialization_id;
+        }
+
         $termId = $currentTerm->get();
 
         if (! $termId) {
