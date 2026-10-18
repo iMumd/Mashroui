@@ -99,7 +99,7 @@ class EvaluationFormTest extends TestCase
         $this->actingAs($admin)->deleteJson("/api/evaluation-forms/{$empty}")->assertNoContent();
         $this->assertDatabaseMissing('evaluation_forms', ['id' => $empty]);
 
-        // مشرف آخر مناقش في مناقشة منشورة: يرى المجموعة ونماذج المناقشين وعلامة اللجنة للاطلاع فقط
+        // مشرف آخر مناقش في مناقشة منشورة: يرى المجموعة ويعبّئ نماذج المناقشين لها (لا مجموعاته هو)
         $project = DB::table('projects')->insertGetId(['team_id' => $team, 'supervisor_id' => $sup->id, 'name' => 'P', 'department_id' => $dept, 'specialization_id' => $spec, 'term_id' => $term]);
         $disc = ['project_id' => $project, 'supervisor_id' => $sup->id, 'place' => 'E504', 'discussion_date' => '2027-01-24', 'discussion_time' => '09:00', 'committee' => "{$otherSup->name}، {$committee->name} | ملاحظة", 'status' => 'pending', 'term_id' => $term];
         DB::table('discussions')->insert($disc);
@@ -110,10 +110,14 @@ class EvaluationFormTest extends TestCase
         $this->assertSame([], $this->actingAs($sup)->getJson('/api/evaluations/examining')->json());
         $exSheet = $this->actingAs($otherSup)->getJson("/api/teams/{$team}/evaluation")->assertOk()->json();
         $this->assertSame(['examiner_bachelor', $new['key']], array_column($exSheet['forms'], 'key'));
-        $this->assertSame([], $exSheet['editable']);
+        // المناقِش يعبّئ نماذج المناقشين لهذه المجموعة (كلها examiner)
+        $this->assertSame(array_column($exSheet['forms'], 'id'), $exSheet['editable']);
         $this->assertNotEmpty($exSheet['submissions']);
         $this->assertSame(['student_id', 'committee_score'], array_keys($exSheet['results'][0]));
-        $this->actingAs($otherSup)->putJson("/api/teams/{$team}/evaluation/{$ex->id}", $fill(5, 5))->assertForbidden();
+        // المناقِش يعبّئ نموذج المناقشين للمجموعة التي يناقشها
+        $this->actingAs($otherSup)->putJson("/api/teams/{$team}/evaluation/{$ex->id}", $fill(5, 5))->assertOk();
+        // لكنه لا يعبّئ نموذج المناقشين لمجموعة لا يناقشها (ولا نموذج المشرف)
+        $this->actingAs($otherSup)->putJson("/api/teams/{$team}/evaluation/{$forms['supervisor']->id}", ['answers' => []])->assertForbidden();
 
         // مشرف المجموعة يرى علامة اللجنة أيضًا، ويعدّل نموذجه فقط
         $own = $this->actingAs($sup)->getJson("/api/teams/{$team}/evaluation")->json();

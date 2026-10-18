@@ -97,8 +97,10 @@ class EvaluationFormController extends Controller
         $user = $request->user();
         $isStaff = in_array($user->role, self::STAFF, true);
         $own = $user->id === $team->supervisor_id;
-        // المشرف: نموذج المشرف لمجموعاته، ونماذج المناقشين (للاطلاع فقط) لمجموعاته وللمجموعات التي يناقشها
-        abort_unless($isStaff || $own || $service->examinedTeamIds($user)->contains($team->id), 403);
+        // المشرف المناقِش لهذه المجموعة يعبّئ نموذج المناقشين لها (وليس لمجموعاته هو)
+        $examines = ! $isStaff && $service->examinedTeamIds($user)->contains($team->id);
+        // المشرف: نموذج المشرف لمجموعاته، ونماذج المناقشين لمجموعاته (اطلاع) وللمجموعات التي يناقشها (تعبئة)
+        abort_unless($isStaff || $own || $examines, 403);
 
         $team->load('specialization:id,name,degree', 'supervisor:id,name', 'project:id,team_id,name,is_featured', 'members.student:id,name,university_number');
         $forms = $service->formsFor($team)->when(! $isStaff, fn ($f) => $f->filter(fn ($form) => $own || $form->kind === 'examiner')->values());
@@ -132,7 +134,10 @@ class EvaluationFormController extends Controller
             // المناقش يرى علامة لجنة المناقشة فقط
             'results' => $isStaff || $own ? $results : $results->map(fn ($r) => ['student_id' => $r->student_id, 'committee_score' => $r->committee_score]),
             // النماذج التي يعبّئها المستخدم؛ الباقي للعرض فقط
-            'editable' => $isStaff ? $forms->pluck('id') : $forms->where('kind', 'supervisor')->pluck('id')->values(),
+            // المشرف: نموذج المشرف لمجموعته + نموذج المناقشين للمجموعات التي يناقشها
+            'editable' => $isStaff
+                ? $forms->pluck('id')
+                : $forms->filter(fn ($f) => ($f->kind === 'supervisor' && $own) || ($f->kind === 'examiner' && $examines))->pluck('id')->values(),
         ]);
     }
 
@@ -161,8 +166,12 @@ class EvaluationFormController extends Controller
     {
         $user = $request->user();
         $isStaff = in_array($user->role, self::STAFF, true);
-        // نموذج المشرف: مشرف المجموعة أو الإدارة/اللجنة · نموذج المناقشين: الإدارة واللجنة فقط
-        abort_unless($form->kind === 'supervisor' ? ($isStaff || $user->id === $team->supervisor_id) : $isStaff, 403);
+        // نموذج المشرف: مشرف المجموعة أو الإدارة/اللجنة
+        // نموذج المناقشين: الإدارة/اللجنة، أو المشرف المناقِش لهذه المجموعة (ضمن مجموعاته التي يناقشها، لا مجموعاته هو)
+        $canSubmit = $form->kind === 'supervisor'
+            ? ($isStaff || $user->id === $team->supervisor_id)
+            : ($isStaff || $service->examinedTeamIds($user)->contains($team->id));
+        abort_unless($canSubmit, 403);
         abort_unless($service->formsFor($team->loadMissing('specialization'))->contains('id', $form->id), 422, 'هذا النموذج لا يخص درجة هذه المجموعة.');
 
         $data = $request->validate([
