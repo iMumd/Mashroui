@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -70,9 +71,35 @@ class User extends Authenticatable
         ];
     }
 
+    /** تخزين مؤقّت غير محفوظ لمعرّفات التخصصات الفعّالة (لا يمرّ عبر سمات الموديل) */
+    public ?array $effectiveSpecializationIdsCache = null;
+
     public function specialization(): BelongsTo
     {
         return $this->belongsTo(Specialization::class);
+    }
+
+    public function specializations(): BelongsToMany
+    {
+        return $this->belongsToMany(Specialization::class);
+    }
+
+    /** معرّفات تخصصات العضو الفعّالة: pivot إن وُجد، وإلا العمود المفرد — مع تخزين مؤقّت لكل كائن */
+    public function effectiveSpecializationIds(): array
+    {
+        if ($this->effectiveSpecializationIdsCache !== null) {
+            return $this->effectiveSpecializationIdsCache;
+        }
+
+        $ids = $this->relationLoaded('specializations')
+            ? $this->specializations->pluck('id')->all()
+            : $this->specializations()->pluck('specializations.id')->all();
+
+        if (! $ids && $this->specialization_id) {
+            $ids = [$this->specialization_id];
+        }
+
+        return $this->effectiveSpecializationIdsCache = array_map('intval', $ids);
     }
 
     public function academicTerm(): BelongsTo

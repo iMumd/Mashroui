@@ -64,17 +64,19 @@ class UserController extends Controller
             $query->where('region', $data['region']);
         }
 
-        // عضو اللجنة المرتبط بتخصص: الطلاب والمشرفون من تخصصه فقط
+        // عضو اللجنة المرتبط بتخصص (أو تخصصين): الطلاب والمشرفون من تخصصاته فقط
         $viewer = $request->user();
-        if ($viewer->role === RoleEnum::Committee && $viewer->specialization_id && in_array($data['role'], [RoleEnum::Student->value, RoleEnum::Supervisor->value], true)) {
-            $data['specialization_id'] = $viewer->specialization_id;
+        $specIds = null;
+        if ($viewer->role === RoleEnum::Committee && in_array($data['role'], [RoleEnum::Student->value, RoleEnum::Supervisor->value], true)) {
+            $specIds = $viewer->effectiveSpecializationIds();
+        } elseif (isset($data['specialization_id'])) {
+            $specIds = [$data['specialization_id']];
         }
 
         // التخصص: تخصص الحساب، وللمشرف أيضًا تخصصات المجموعات التي يشرف عليها
-        if (isset($data['specialization_id'])) {
-            $specId = $data['specialization_id'];
-            $query->where(fn ($q) => $q->where('specialization_id', $specId)
-                ->orWhereHas('supervisedTeams', fn ($t) => $t->where('specialization_id', $specId)));
+        if (! empty($specIds)) {
+            $query->where(fn ($q) => $q->whereIn('specialization_id', $specIds)
+                ->orWhereHas('supervisedTeams', fn ($t) => $t->whereIn('specialization_id', $specIds)));
         }
 
         // بحث بالاسم أو الرقم الجامعي/الوظيفي أو البريد
@@ -91,7 +93,7 @@ class UserController extends Controller
             $query->withCount('supervisedTasks')->withMax('tokens', 'last_used_at');
         }
 
-        $users = $query->orderBy('name')->get();
+        $users = $query->with('specializations')->orderBy('name')->get();
 
         return UserResource::collection($users);
     }
@@ -108,9 +110,30 @@ class UserController extends Controller
             'gender' => ['nullable', Rule::enum(GenderEnum::class)],
             'region' => ['nullable', Rule::enum(RegionEnum::class)],
             'specialization_id' => ['nullable', 'exists:specializations,id'],
+            'specialization_ids' => ['sometimes', 'nullable', 'array', 'max:2'],
+            'specialization_ids.*' => ['integer', 'exists:specializations,id'],
         ]);
 
+        $syncSpecs = $request->has('specialization_ids');
+        $specIds = $syncSpecs
+            ? array_values(array_unique(array_map('intval', $data['specialization_ids'] ?? [])))
+            : null;
+        unset($data['specialization_ids']);
+
+        if ($syncSpecs && $user->role === RoleEnum::Committee && count($specIds) < 1) {
+            throw ValidationException::withMessages(['specialization_ids' => 'عضو اللجنة يجب ربطه بتخصص واحد على الأقل.']);
+        }
+
+        if ($syncSpecs) {
+            $data['specialization_id'] = $specIds[0] ?? null;
+        }
+
         $user->update($data);
+
+        if ($syncSpecs) {
+            $user->specializations()->sync($specIds);
+            $user->effectiveSpecializationIdsCache = null;
+        }
 
         return new UserResource($user);
     }
@@ -292,9 +315,11 @@ class UserController extends Controller
             'university_number' => ['nullable', 'string', 'max:30'],
             'gender' => ['nullable', Rule::enum(GenderEnum::class)],
             'region' => ['nullable', Rule::enum(RegionEnum::class)],
-            // عضو اللجنة لا بد أن يُربط بتخصص عند الإنشاء حتى يرى مجموعات/مشاريع تخصصه فقط
-            // (SpecializationScope يعمل فقط عند وجود specialization_id)؛ توسيعه إلى "الكل" قرار لاحق للإدارة.
-            'specialization_id' => ['nullable', 'exists:specializations,id', 'required_if:role,'.RoleEnum::Committee->value],
+            // عضو اللجنة لا بد أن يُربط بتخصص واحد على الأقل (حتى تخصصين) حتى يرى مجموعات/مشاريع تخصصاته فقط
+            // (SpecializationScope يعمل فقط عند وجود تخصصات)؛ توسيعه إلى "الكل" قرار لاحق للإدارة.
+            'specialization_id' => ['nullable', 'exists:specializations,id'],
+            'specialization_ids' => ['nullable', 'array', 'max:2'],
+            'specialization_ids.*' => ['integer', 'exists:specializations,id'],
         ]);
 
         $expectedDomain = $data['role'] === RoleEnum::Student->value ? CollegeEmail::STUDENT_DOMAIN : CollegeEmail::STAFF_DOMAIN;
@@ -302,12 +327,24 @@ class UserController extends Controller
             throw ValidationException::withMessages(['email' => "البريد الإلكتروني يجب أن ينتهي بـ @{$expectedDomain}."]);
         }
 
-        // عضو اللجنة المرتبط بتخصص: الطلاب والمشرفون الذين يضيفهم يُربطون بتخصصه تلقائيًا
-        // حتى يظهروا له في قائمة الأعضاء ويتمكّن من إدارتهم (قراءة اللجنة مقيّدة بتخصصها في index()).
-        if ($actor->role === RoleEnum::Committee && $actor->specialization_id
-            && in_array($data['role'], [RoleEnum::Student->value, RoleEnum::Supervisor->value], true)) {
-            $data['specialization_id'] = $actor->specialization_id;
+        $specIds = ! empty($data['specialization_ids'])
+            ? $data['specialization_ids']
+            : (isset($data['specialization_id']) ? [$data['specialization_id']] : []);
+        $specIds = array_values(array_unique(array_map('intval', $specIds)));
+
+        if ($data['role'] === RoleEnum::Committee->value && count($specIds) < 1) {
+            throw ValidationException::withMessages(['specialization_ids' => 'عضو اللجنة يجب ربطه بتخصص واحد على الأقل.']);
         }
+
+        // عضو اللجنة المرتبط بتخصص: الطلاب والمشرفون الذين يضيفهم يُربطون بأول تخصص من تخصصاته تلقائيًا
+        // حتى يظهروا له في قائمة الأعضاء ويتمكّن من إدارتهم (قراءة اللجنة مقيّدة بتخصصاتها في index()).
+        if ($actor->role === RoleEnum::Committee
+            && in_array($data['role'], [RoleEnum::Student->value, RoleEnum::Supervisor->value], true)) {
+            $actorSpecIds = $actor->effectiveSpecializationIds();
+            $specIds = $actorSpecIds ? [$actorSpecIds[0]] : [];
+        }
+
+        $data['specialization_id'] = $specIds[0] ?? null;
 
         $termId = $currentTerm->get();
 
@@ -315,7 +352,7 @@ class UserController extends Controller
             throw ValidationException::withMessages(['term_id' => 'لا يوجد سنة دراسية محدّدة.']);
         }
 
-        $result = DB::transaction(function () use ($data, $termId) {
+        $result = DB::transaction(function () use ($data, $termId, $specIds) {
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -331,6 +368,10 @@ class UserController extends Controller
                 'status' => UserStatusEnum::Active,
                 'must_change_password' => true,
             ]);
+
+            if ($specIds) {
+                $user->specializations()->sync($specIds);
+            }
 
             $invite = InviteLink::create([
                 'user_id' => $user->id,

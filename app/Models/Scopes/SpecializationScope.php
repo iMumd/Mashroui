@@ -18,8 +18,12 @@ class SpecializationScope implements Scope
     {
         $user = Auth::user();
 
-        if ($user && $user->role === RoleEnum::Committee && $user->specialization_id) {
-            $builder->where($model->getTable().'.specialization_id', $user->specialization_id);
+        if ($user && $user->role === RoleEnum::Committee) {
+            $ids = $user->effectiveSpecializationIds();
+
+            if ($ids) {
+                $builder->whereIn($model->getTable().'.specialization_id', $ids);
+            }
         }
     }
 }

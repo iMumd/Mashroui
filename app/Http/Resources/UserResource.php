@@ -24,6 +24,9 @@ class UserResource extends JsonResource
             'gender' => $this->gender,
             'region' => $this->region,
             'specialization_id' => $this->specialization_id,
+            'specialization_ids' => $this->relationLoaded('specializations') && $this->specializations->isNotEmpty()
+                ? $this->specializations->pluck('id')
+                : array_values(array_filter([$this->specialization_id])),
             'avatar_url' => $this->avatar_url,
             'tasks_count' => $this->whenHas('supervised_tasks_count'),
             'last_active_at' => $this->whenHas('tokens_max_last_used_at'),
