@@ -64,17 +64,21 @@ class UserController extends Controller
             $query->where('region', $data['region']);
         }
 
-        // عضو اللجنة المرتبط بتخصص: الطلاب والمشرفون من تخصصه فقط
-        $viewer = $request->user();
-        if ($viewer->role === RoleEnum::Committee && $viewer->specialization_id && in_array($data['role'], [RoleEnum::Student->value, RoleEnum::Supervisor->value], true)) {
-            $data['specialization_id'] = $viewer->specialization_id;
+        // التخصص المطلوب، وعضو اللجنة المقيَّد بتخصصات/قسم: الطلاب والمشرفون من نطاقه فقط
+        $specIds = isset($data['specialization_id']) ? [$data['specialization_id']] : null;
+        $scopeIds = $request->user()->committeeSpecializationIds();
+        if ($scopeIds !== null && in_array($data['role'], [RoleEnum::Student->value, RoleEnum::Supervisor->value], true)) {
+            $specIds = $specIds === null ? $scopeIds : array_values(array_intersect($specIds, $scopeIds));
         }
 
         // التخصص: تخصص الحساب، وللمشرف أيضًا تخصصات المجموعات التي يشرف عليها
-        if (isset($data['specialization_id'])) {
-            $specId = $data['specialization_id'];
-            $query->where(fn ($q) => $q->where('specialization_id', $specId)
-                ->orWhereHas('supervisedTeams', fn ($t) => $t->where('specialization_id', $specId)));
+        if ($specIds !== null) {
+            $query->where(fn ($q) => $q->whereIn('specialization_id', $specIds)
+                ->orWhereHas('supervisedTeams', fn ($t) => $t->whereIn('specialization_id', $specIds)));
+        }
+
+        if ($data['role'] === RoleEnum::Committee->value) {
+            $query->with('committeeSpecializations:id');
         }
 
         // بحث بالاسم أو الرقم الجامعي/الوظيفي أو البريد
@@ -108,11 +112,36 @@ class UserController extends Controller
             'gender' => ['nullable', Rule::enum(GenderEnum::class)],
             'region' => ['nullable', Rule::enum(RegionEnum::class)],
             'specialization_id' => ['nullable', 'exists:specializations,id'],
+            ...self::COMMITTEE_SCOPE_RULES,
         ]);
 
-        $user->update($data);
+        DB::transaction(function () use ($user, $data) {
+            $user->update(collect($data)->except(['specialization_ids', 'scope_department_id'])->all());
+            $this->syncCommitteeScope($user, $data);
+        });
 
-        return new UserResource($user);
+        return new UserResource($user->load('committeeSpecializations:id'));
+    }
+
+    /** نطاق عضو لجنة الإشراف: حتى 5 تخصصات أو قسم كامل (لا الاثنان معًا)؛ بلا أيٍّ منهما = كل التخصصات */
+    private const COMMITTEE_SCOPE_RULES = [
+        'specialization_ids' => ['sometimes', 'array', 'max:5'],
+        'specialization_ids.*' => ['integer', 'distinct', 'exists:specializations,id'],
+        'scope_department_id' => ['sometimes', 'nullable', 'exists:departments,id', 'prohibits:specialization_ids'],
+    ];
+
+    private function syncCommitteeScope(User $user, array $data): void
+    {
+        if ($user->role !== RoleEnum::Committee || (! array_key_exists('specialization_ids', $data) && ! array_key_exists('scope_department_id', $data))) {
+            return;
+        }
+
+        $departmentId = $data['scope_department_id'] ?? null;
+        $ids = $departmentId ? [] : array_values($data['specialization_ids'] ?? []);
+
+        $user->committeeSpecializations()->sync($ids);
+        // specialization_id يبقى أول تخصص للتوافق مع الشاشات التي تعرض تخصصًا واحدًا
+        $user->update(['scope_department_id' => $departmentId, 'specialization_id' => $ids[0] ?? null]);
     }
 
     public function updateStatus(Request $request, User $user)
@@ -292,9 +321,10 @@ class UserController extends Controller
             'university_number' => ['nullable', 'string', 'max:30'],
             'gender' => ['nullable', Rule::enum(GenderEnum::class)],
             'region' => ['nullable', Rule::enum(RegionEnum::class)],
-            // عضو اللجنة لا بد أن يُربط بتخصص عند الإنشاء حتى يرى مجموعات/مشاريع تخصصه فقط
-            // (SpecializationScope يعمل فقط عند وجود specialization_id)؛ توسيعه إلى "الكل" قرار لاحق للإدارة.
-            'specialization_id' => ['nullable', 'exists:specializations,id', 'required_if:role,'.RoleEnum::Committee->value],
+            // عضو اللجنة لا بد أن يُربط بتخصص أو نطاق (تخصصات متعددة/قسم) حتى يرى مجموعات/مشاريع نطاقه فقط
+            'specialization_id' => ['nullable', 'exists:specializations,id', Rule::requiredIf(fn () => $request->input('role') === RoleEnum::Committee->value
+                && ! $request->filled('specialization_ids') && ! $request->filled('scope_department_id'))],
+            ...self::COMMITTEE_SCOPE_RULES,
         ]);
 
         $expectedDomain = $data['role'] === RoleEnum::Student->value ? CollegeEmail::STUDENT_DOMAIN : CollegeEmail::STAFF_DOMAIN;
@@ -331,6 +361,8 @@ class UserController extends Controller
                 'status' => UserStatusEnum::Active,
                 'must_change_password' => true,
             ]);
+
+            $this->syncCommitteeScope($user, $data);
 
             $invite = InviteLink::create([
                 'user_id' => $user->id,
