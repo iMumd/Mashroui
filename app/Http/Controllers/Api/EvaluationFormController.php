@@ -102,7 +102,7 @@ class EvaluationFormController extends Controller
         // المشرف: نموذج المشرف لمجموعاته، ونماذج المناقشين لمجموعاته (اطلاع) وللمجموعات التي يناقشها (تعبئة)
         abort_unless($isStaff || $own || $examines, 403);
 
-        $team->load('specialization:id,name,degree', 'supervisor:id,name', 'project:id,team_id,name,is_featured', 'members.student:id,name,university_number');
+        $team->load('specialization:id,name,degree', 'supervisor:id,name,email,whatsapp,employee_number', 'project:id,team_id,name,is_featured', 'members.student:id,name,university_number');
         $forms = $service->formsFor($team)->when(! $isStaff, fn ($f) => $f->filter(fn ($form) => $own || $form->kind === 'examiner')->values());
         $examinerForms = $forms->where('kind', 'examiner')->pluck('id');
 
@@ -121,7 +121,7 @@ class EvaluationFormController extends Controller
                 'section' => $team->section,
                 'degree' => $team->specialization?->degree,
                 'specialization' => $team->specialization?->name,
-                'supervisor' => $team->supervisor ? ['id' => $team->supervisor->id, 'name' => $team->supervisor->name] : null,
+                'supervisor' => $team->supervisor ? ['id' => $team->supervisor->id, 'name' => $team->supervisor->name, 'email' => $team->supervisor->email, 'whatsapp' => $team->supervisor->whatsapp, 'employee_number' => $team->supervisor->employee_number] : null,
                 'project' => $team->project?->name,
                 'project_id' => $team->project?->id,
                 'featured' => (bool) $team->project?->is_featured,
