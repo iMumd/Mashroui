@@ -47,6 +47,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:login');
+Route::get('/invite/{token}', [InviteController::class, 'status'])->middleware('throttle:invite-accept');
 Route::post('/invite/{token}/accept', [InviteController::class, 'accept'])->middleware('throttle:invite-accept');
 Route::post('/magic-login/{token}', [MagicLoginController::class, 'consume'])->middleware('throttle:invite-accept');
 Route::get('/projects/featured', [ProjectController::class, 'featured'])->middleware('throttle:public');

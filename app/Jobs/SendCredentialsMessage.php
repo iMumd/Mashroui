@@ -23,8 +23,9 @@ class SendCredentialsMessage implements ShouldQueue
     public function handle(WhatsappService $whatsapp): void
     {
         try {
-            $link = config('app.frontend_url')."/reset-password?token={$this->invite->token}";
             $user = $this->delivery->user;
+            // الرابط مرتبط ببريد صاحبه: البريد جزء من الرابط ويُتحقق منه عند تعيين كلمة المرور
+            $link = config('app.frontend_url').'/reset-password?token='.$this->invite->token.'&email='.urlencode($user->email);
             $message = "مرحباً {$user->name}، رابط تفعيل حسابك على منصة مسار: {$link}";
 
             match ($this->delivery->channel) {
