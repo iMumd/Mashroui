@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Enums\RoleEnum;
-use App\Models\User;
 use Database\Seeders\Concerns\UpsertsUsers;
+use Illuminate\Database\Seeder;
 
 class SuperAdminSeeder extends Seeder
 {

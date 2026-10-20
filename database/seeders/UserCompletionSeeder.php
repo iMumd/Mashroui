@@ -7,6 +7,7 @@ use App\Models\AcademicTerm;
 use App\Models\Specialization;
 use App\Models\User;
 use Database\Seeders\Concerns\UpsertsUsers;
+use Illuminate\Database\Seeder;
 
 /**
  * تكملة حقول جميع المستخدمين القائمين: جنس، ومنطقة (للطلاب)، وتخصص (لكل غير super_admin)،

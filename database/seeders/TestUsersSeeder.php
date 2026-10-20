@@ -6,6 +6,7 @@ use App\Enums\RoleEnum;
 use App\Models\AcademicTerm;
 use App\Models\Specialization;
 use Database\Seeders\Concerns\UpsertsUsers;
+use Illuminate\Database\Seeder;
 
 class TestUsersSeeder extends Seeder
 {
