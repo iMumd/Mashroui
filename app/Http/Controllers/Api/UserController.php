@@ -324,7 +324,8 @@ class UserController extends Controller
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             'role' => ['required', Rule::in($allowedRoles)],
             'whatsapp' => ['nullable', new WhatsappNumber],
-            'employee_number' => ['nullable', 'string', 'max:30'],
+            // الرقم الوظيفي إجباري للمشرف (معرّفه الرسمي في الكلية)
+            'employee_number' => ['nullable', 'string', 'max:30', 'required_if:role,'.RoleEnum::Supervisor->value],
             'university_number' => ['nullable', 'string', 'max:30'],
             // جنس الطالب إجباري حتى يظهر في قائمة الطلاب/الطالبات الصحيحة (التصنيف يعتمد عليه)
             'gender' => ['nullable', Rule::enum(GenderEnum::class), 'required_if:role,'.RoleEnum::Student->value],
@@ -337,6 +338,7 @@ class UserController extends Controller
         ], [
             'gender.required_if' => 'جنس الطالب (طالب/طالبة) مطلوب.',
             'region.required_if' => 'مكان تواجد الطالب مطلوب.',
+            'employee_number.required_if' => 'الرقم الوظيفي للمشرف مطلوب.',
         ]);
 
         $expectedDomain = $data['role'] === RoleEnum::Student->value ? CollegeEmail::STUDENT_DOMAIN : CollegeEmail::STAFF_DOMAIN;
