@@ -6,6 +6,7 @@ use App\Enums\RoleEnum;
 use App\Models\AcademicTerm;
 use App\Models\Specialization;
 use App\Models\User;
+use Database\Seeders\Concerns\UpsertsUsers;
 use Illuminate\Database\Seeder;
 
 /**
@@ -16,6 +17,7 @@ use Illuminate\Database\Seeder;
  */
 class MembersDemoSeeder extends Seeder
 {
+    use UpsertsUsers;
     private const MALE = ['محمد', 'أحمد', 'يوسف', 'عمر', 'خالد', 'إبراهيم', 'حمزة', 'سامي', 'مصطفى', 'أنس', 'عبد الرحمن', 'زياد', 'طارق', 'باسل', 'معاذ'];
 
     private const FEMALE = ['آية', 'سارة', 'مريم', 'نور', 'رهف', 'دعاء', 'هبة', 'ملك', 'شهد', 'لينا', 'بيان', 'إسراء', 'رغد', 'هديل', 'تسنيم'];
@@ -33,11 +35,13 @@ class MembersDemoSeeder extends Seeder
         $specIds = Specialization::pluck('id')->all();
 
         foreach (self::COMMITTEE as $i => $name) {
-            User::updateOrCreate(['email' => sprintf('committee%02d@ucas.edu.ps', $i + 1)], [
+            $this->upsertUser(sprintf('committee%02d@ucas.edu.ps', $i + 1), [
                 'name' => $name,
                 'password' => 'password',
                 'role' => RoleEnum::Committee,
-                'employee_number' => 'EMP-'.(2001 + $i),
+                'gender' => $this->genderOf($name),
+                'specialization_id' => $specIds ? $specIds[$i % count($specIds)] : null,
+                'employee_number' => 'EMP-'.(4001 + $i),
                 'whatsapp' => '97059'.str_pad((string) (3100000 + $i * 7919), 7, '0', STR_PAD_LEFT),
             ]);
         }

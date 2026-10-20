@@ -14,31 +14,34 @@ class SpecializationSeeder extends Seeder
         $software = Department::where('name', 'قسم البرمجيات')->firstOrFail();
         $media = Department::where('name', 'قسم الوسائط')->firstOrFail();
 
-        Specialization::create([
+        Specialization::firstOrCreate([
             'department_id' => $software->id,
             'name' => 'تصميم وتطوير مواقع الويب',
+        ], [
             'degree' => DegreeEnum::Diploma,
         ]);
 
-        Specialization::create([
+        Specialization::firstOrCreate([
             'department_id' => $software->id,
             'name' => 'برمجيات وقواعد بيانات',
+        ], [
             'degree' => DegreeEnum::Diploma,
         ]);
 
-        Specialization::create([
+        Specialization::firstOrCreate([
             'department_id' => $software->id,
             'name' => 'تصميم وبرمجة تطبيقات الموبايل',
+        ], [
             'degree' => DegreeEnum::Bachelor,
         ]);
 
-        Specialization::create([
+        Specialization::firstOrCreate([
             'department_id' => $media->id,
             'name' => 'تكنولوجيا الوسائط المتعددة',
             'degree' => DegreeEnum::Diploma,
         ]);
 
-        Specialization::create([
+        Specialization::firstOrCreate([
             'department_id' => $media->id,
             'name' => 'تكنولوجيا الوسائط المتعددة',
             'degree' => DegreeEnum::Bachelor,

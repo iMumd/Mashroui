@@ -22,16 +22,16 @@ class NextTermDemoSeeder extends DemoDataSeeder
         $mobile = Specialization::where('name', 'تصميم وبرمجة تطبيقات الموبايل')->first();
         $mediaDiploma = Specialization::where('name', 'تكنولوجيا الوسائط المتعددة')->where('degree', 'diploma')->first();
 
-        $supAmjad = User::create([
-            'name' => 'م. أمجد صايمة', 'email' => $this->staffEmail('t3-a.sayma@mashroui.local'),
-            'password' => 'password', 'role' => RoleEnum::Supervisor, 'specialization_id' => $mobile->id,
+        $supAmjad = $this->upsertUser($this->staffEmail('t3-a.sayma@mashroui.local'), [
+            'name' => 'م. أمجد صايمة', 'password' => 'password', 'role' => RoleEnum::Supervisor,
+            'gender' => 'male', 'specialization_id' => $mobile->id,
             'term_id' => $this->termId, 'whatsapp' => '970562298101', 'employee_number' => 'EMP-3001',
-        ]);
-        $supLina = User::create([
-            'name' => 'د. لينا فارس', 'email' => $this->staffEmail('t3-l.fares@mashroui.local'),
-            'password' => 'password', 'role' => RoleEnum::Supervisor, 'specialization_id' => $db->id,
+        ], 'EMP-3001');
+        $supLina = $this->upsertUser($this->staffEmail('t3-l.fares@mashroui.local'), [
+            'name' => 'د. لينا فارس', 'password' => 'password', 'role' => RoleEnum::Supervisor,
+            'gender' => 'female', 'specialization_id' => $db->id,
             'term_id' => $this->termId, 'whatsapp' => '970592298102', 'employee_number' => 'EMP-3002',
-        ]);
+        ], 'EMP-3002');
 
         // فريق 1: منصة تبادل المهارات الطلابية — قيد التنفيذ (بدأ توًا)
         $leader1 = $this->leader('فادي حماد', 't3-fadi.leader@mashroui.local', $db->id);

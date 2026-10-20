@@ -9,18 +9,21 @@ class AcademicTermSeeder extends Seeder
 {
     public function run(): void
     {
-        AcademicTerm::create([
+        AcademicTerm::firstOrCreate([
             'name' => 'السنة الدراسية 2025/2026',
+        ], [
             'is_current' => false,
         ]);
 
-        AcademicTerm::create([
+        AcademicTerm::firstOrCreate([
             'name' => 'الفصل الأول 2026/2027',
+        ], [
             'is_current' => true,
         ]);
 
-        AcademicTerm::create([
+        AcademicTerm::firstOrCreate([
             'name' => 'السنة الدراسية 2027/2028',
+        ], [
             'is_current' => false,
         ]);
     }

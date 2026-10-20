@@ -19,12 +19,14 @@ use App\Models\Task;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
+use Database\Seeders\Concerns\UpsertsUsers;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
 
 /** بيانات عرض واقعية وموسّعة — تُشغَّل بعد TestUsersSeeder وFeaturedProjectSeeder لإغناء الديمو الحي */
 class DemoDataSeeder extends Seeder
 {
+    use UpsertsUsers;
     /** فيديوهات حقيقية قابلة للتشغيل (Blender Foundation، مفتوحة المصدر) تُستخدم كعرض نهائي توضيحي */
     protected const DEMO_VIDEOS = [
         'https://www.youtube.com/watch?v=YE7VzlLtp-4',
@@ -50,25 +52,25 @@ class DemoDataSeeder extends Seeder
         $mediaDiploma = Specialization::where('name', 'تكنولوجيا الوسائط المتعددة')->where('degree', 'diploma')->first();
         $mediaBachelor = Specialization::where('name', 'تكنولوجيا الوسائط المتعددة')->where('degree', 'bachelor')->first();
 
-        $supervisorMain = User::where('email', 'supervisor@ucas.edu.ps')->first();
-        $leaderMain = User::where('email', 'leader@smail.ucas.edu.ps')->first();
-        $studentMain = User::where('email', 'student@smail.ucas.edu.ps')->first();
+        $supervisorMain = $this->findUser('supervisor@ucas.edu.ps', 'EMP-1003');
+        $leaderMain = $this->findUser('leader@smail.ucas.edu.ps');
+        $studentMain = $this->findUser('student@smail.ucas.edu.ps');
 
-        $supHeba = User::create([
-            'name' => 'م. هبة الزعبي', 'email' => $this->staffEmail('h.zoubi@mashroui.local'),
-            'password' => 'password', 'role' => RoleEnum::Supervisor, 'specialization_id' => $mediaBachelor->id,
+        $supHeba = $this->upsertUser($this->staffEmail('h.zoubi@mashroui.local'), [
+            'name' => 'م. هبة الزعبي', 'password' => 'password', 'role' => RoleEnum::Supervisor,
+            'gender' => 'female', 'specialization_id' => $mediaBachelor->id,
             'whatsapp' => '970569234481', 'employee_number' => 'EMP-1005',
-        ]);
-        $supRami = User::create([
-            'name' => 'م. رامي قاسم', 'email' => $this->staffEmail('r.qasem@mashroui.local'),
-            'password' => 'password', 'role' => RoleEnum::Supervisor, 'specialization_id' => $db->id,
+        ], 'EMP-1005');
+        $supRami = $this->upsertUser($this->staffEmail('r.qasem@mashroui.local'), [
+            'name' => 'م. رامي قاسم', 'password' => 'password', 'role' => RoleEnum::Supervisor,
+            'gender' => 'male', 'specialization_id' => $db->id,
             'whatsapp' => '970525871123', 'employee_number' => 'EMP-1006',
-        ]);
-        $supNour = User::create([
-            'name' => 'د. نور الشريف', 'email' => $this->staffEmail('n.sharif@mashroui.local'),
-            'password' => 'password', 'role' => RoleEnum::Supervisor, 'specialization_id' => $web->id,
+        ], 'EMP-1006');
+        $supNour = $this->upsertUser($this->staffEmail('n.sharif@mashroui.local'), [
+            'name' => 'د. نور الشريف', 'password' => 'password', 'role' => RoleEnum::Supervisor,
+            'gender' => 'female', 'specialization_id' => $web->id,
             'whatsapp' => '970542298761', 'employee_number' => 'EMP-1007',
-        ]);
+        ], 'EMP-1007');
 
         // ===== فريق 1: النظام الأساسي (حسابات الاختبار) — قيد التنفيذ =====
         $leaderMain->update(['specialization_id' => $db->id, 'term_id' => $this->termId]);
@@ -303,8 +305,7 @@ class DemoDataSeeder extends Seeder
         ]);
 
         // مناقشة قادمة (لم تُعقد بعد) — لعرض حالة "قادم" بجدول لجنة الإشراف
-        Discussion::create([
-            'project_id' => $project6->id,
+        Discussion::firstOrCreate(['project_id' => $project6->id, 'status' => DiscussionStatusEnum::Pending], [
             'supervisor_id' => $supNour->id,
             'place' => 'قاعة المناقشات - مبنى B',
             'discussion_date' => now()->addDays(12)->toDateString(),
@@ -320,25 +321,29 @@ class DemoDataSeeder extends Seeder
 
     protected function leader(string $name, string $email, int $specId): User
     {
-        return User::create([
-            'name' => $name, 'email' => $this->studentEmail($email), 'password' => 'password',
+        $gender = $this->genderOf($name);
+
+        return $this->upsertUser($this->studentEmail($email), [
+            'name' => $name, 'password' => 'password',
             'role' => RoleEnum::Student, 'specialization_id' => $specId, 'term_id' => $this->termId,
             'whatsapp' => $this->palestinianNumber(),
             'university_number' => $this->universityNumber(),
-            'gender' => ['male', 'female'][random_int(0, 1)],
-            'region' => ['gaza', 'south'][random_int(0, 1)],
+            'gender' => $gender,
+            'region' => $gender === 'female' ? 'gaza' : 'south',
         ]);
     }
 
     protected function student(string $name, string $email, int $specId): User
     {
-        return User::create([
-            'name' => $name, 'email' => $this->studentEmail($email), 'password' => 'password',
+        $gender = $this->genderOf($name);
+
+        return $this->upsertUser($this->studentEmail($email), [
+            'name' => $name, 'password' => 'password',
             'role' => RoleEnum::Student, 'specialization_id' => $specId, 'term_id' => $this->termId,
             'whatsapp' => $this->palestinianNumber(),
             'university_number' => $this->universityNumber(),
-            'gender' => ['male', 'female'][random_int(0, 1)],
-            'region' => ['gaza', 'south'][random_int(0, 1)],
+            'gender' => $gender,
+            'region' => $gender === 'female' ? 'gaza' : 'south',
         ]);
     }
 
@@ -397,13 +402,21 @@ class DemoDataSeeder extends Seeder
         string $name, User $supervisor, User $leader, array $members, Specialization $spec,
         string $projectName, string $description, ProjectStatusEnum $status, ?\Illuminate\Support\Carbon $completedAt = null,
     ): array {
+        // آمن لإعادة التشغيل: إن كان الفريق موجوداً نعيده مع مشروعه بدل إنشاء نسخة مكررة
+        $team = Team::withoutGlobalScopes()->withTrashed()
+            ->where('name', $name)->where('term_id', $this->termId)->first();
+
+        if ($team) {
+            return [$team, Project::withoutGlobalScopes()->where('team_id', $team->id)->firstOrFail()];
+        }
+
         $team = Team::create([
             'name' => $name, 'section' => $this->nextSection(), 'supervisor_id' => $supervisor->id,
             'specialization_id' => $spec->id, 'term_id' => $this->termId, 'leader_id' => $leader->id,
         ]);
-        TeamMember::create(['team_id' => $team->id, 'student_id' => $leader->id, 'is_leader' => true]);
+        TeamMember::firstOrCreate(['team_id' => $team->id, 'student_id' => $leader->id], ['is_leader' => true]);
         foreach ($members as $member) {
-            TeamMember::create(['team_id' => $team->id, 'student_id' => $member->id, 'is_leader' => false]);
+            TeamMember::firstOrCreate(['team_id' => $team->id, 'student_id' => $member->id], ['is_leader' => false]);
         }
 
         $project = Project::create([
@@ -418,8 +431,8 @@ class DemoDataSeeder extends Seeder
 
     protected function approvedProposal(Project $project, User $leader, User $supervisor, string $fileName, string $problems, string $solutions, string $features): void
     {
-        Proposal::create([
-            'project_id' => $project->id, 'name' => $project->name, 'description' => $project->description,
+        Proposal::firstOrCreate(['project_id' => $project->id], [
+            'name' => $project->name, 'description' => $project->description,
             'problems' => $problems, 'solutions' => $solutions, 'features_value' => $features,
             'pdf_path' => $this->placeholderPdf('proposals', $fileName),
             'status' => ProposalStatusEnum::Approved, 'submitted_by' => $leader->id, 'reviewed_by' => $supervisor->id,
@@ -428,8 +441,8 @@ class DemoDataSeeder extends Seeder
 
     protected function pendingProposal(Project $project, User $leader, string $fileName, string $problems, string $solutions, string $features): void
     {
-        Proposal::create([
-            'project_id' => $project->id, 'name' => $project->name, 'description' => $project->description,
+        Proposal::firstOrCreate(['project_id' => $project->id], [
+            'name' => $project->name, 'description' => $project->description,
             'problems' => $problems, 'solutions' => $solutions, 'features_value' => $features,
             'pdf_path' => $this->placeholderPdf('proposals', $fileName),
             'status' => ProposalStatusEnum::Pending, 'submitted_by' => $leader->id,
@@ -438,6 +451,10 @@ class DemoDataSeeder extends Seeder
 
     protected function rejectedProposal(Project $project, User $leader, User $supervisor, string $fileName, string $problems, string $solutions, string $features, string $reason, array $earlierReasons = []): void
     {
+        if (Proposal::withoutGlobalScopes()->where('project_id', $project->id)->exists()) {
+            return;
+        }
+
         $proposal = Proposal::create([
             'project_id' => $project->id, 'name' => $project->name, 'description' => $project->description,
             'problems' => $problems, 'solutions' => $solutions, 'features_value' => $features,
@@ -469,7 +486,7 @@ class DemoDataSeeder extends Seeder
     protected function tasks(Team $team, User $creator, array $items): void
     {
         foreach ($items as [$title, $status]) {
-            Task::create(['team_id' => $team->id, 'title' => $title, 'status' => $status, 'created_by' => $creator->id]);
+            Task::firstOrCreate(['team_id' => $team->id, 'title' => $title], ['status' => $status, 'created_by' => $creator->id]);
         }
     }
 
@@ -478,8 +495,8 @@ class DemoDataSeeder extends Seeder
     {
         $links = ['https://meet.google.com/xyz-abcd-efg', 'https://meet.google.com/lmn-opqr-stu', 'https://meet.google.com/qrt-uvwx-yzc'];
         foreach ($items as $i => [$title, $when, $notes]) {
-            Meeting::create([
-                'team_id' => $team->id, 'title' => $title, 'scheduled_at' => $when->setTime(11, 0),
+            Meeting::firstOrCreate(['team_id' => $team->id, 'title' => $title], [
+                'scheduled_at' => $when->setTime(11, 0),
                 'google_meet_link' => $links[$i % count($links)], 'notes' => $notes, 'created_by' => $creator->id,
             ]);
         }
@@ -487,8 +504,7 @@ class DemoDataSeeder extends Seeder
 
     protected function finalReport(Project $project, User $leader, string $fileName, string $videoUrl): void
     {
-        FinalReport::create([
-            'project_id' => $project->id,
+        FinalReport::firstOrCreate(['project_id' => $project->id], [
             'pdf_path' => $this->placeholderPdf('final_reports', $fileName),
             'video_url' => $videoUrl,
             'uploaded_by' => $leader->id,
@@ -497,11 +513,11 @@ class DemoDataSeeder extends Seeder
 
     protected function discussion(Project $project, User $supervisor, string $place, \Illuminate\Support\Carbon $date, string $time, string $committee): void
     {
-        Discussion::create([
-            'project_id' => $project->id, 'supervisor_id' => $supervisor->id, 'place' => $place,
+        Discussion::firstOrCreate(['project_id' => $project->id, 'status' => DiscussionStatusEnum::Confirmed], [
+            'supervisor_id' => $supervisor->id, 'place' => $place,
             'discussion_date' => $date->toDateString(), 'discussion_time' => $time,
             'committee' => $committee, 'whatsapp' => null,
-            'status' => DiscussionStatusEnum::Confirmed, 'term_id' => $this->termId,
+            'term_id' => $this->termId,
         ]);
     }
 

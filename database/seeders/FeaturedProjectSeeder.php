@@ -17,40 +17,59 @@ use App\Models\Task;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
+use Database\Seeders\Concerns\UpsertsUsers;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
 
 class FeaturedProjectSeeder extends Seeder
 {
+    use UpsertsUsers;
+
     public function run(): void
     {
         $termId = AcademicTerm::where('is_current', true)->value('id');
         $specialization = Specialization::first();
 
-        $supervisor = User::firstOrCreate(
-            ['email' => 'supervisor.featured@ucas.edu.ps'],
-            [
-                'name' => 'م. سامر خليل',
-                'password' => 'password',
-                'role' => RoleEnum::Supervisor,
-                'specialization_id' => $specialization->id,
-                'whatsapp' => '970599234567',
-                'employee_number' => 'EMP-1004',
-            ]
-        );
+        $supervisor = $this->upsertUser('supervisor.featured@ucas.edu.ps', [
+            'name' => 'م. سامر خليل',
+            'password' => 'password',
+            'role' => RoleEnum::Supervisor,
+            'gender' => 'male',
+            'specialization_id' => $specialization->id,
+            'whatsapp' => '970599234567',
+            'employee_number' => 'EMP-1004',
+        ], 'EMP-1004');
 
-        $leader = User::firstOrCreate(
-            ['email' => 'leader.featured@smail.ucas.edu.ps'],
-            [
-                'name' => 'أحمد عودة',
-                'password' => 'password',
-                'role' => RoleEnum::Student,
-                'specialization_id' => $specialization->id,
-                'term_id' => $termId,
-                'whatsapp' => '970562348871',
-                'university_number' => '12110234',
-            ]
-        );
+        $leader = $this->upsertUser('leader.featured@smail.ucas.edu.ps', [
+            'name' => 'أحمد عودة',
+            'password' => 'password',
+            'role' => RoleEnum::Student,
+            'gender' => 'male',
+            'region' => 'gaza',
+            'specialization_id' => $specialization->id,
+            'term_id' => $termId,
+            'whatsapp' => '970562348871',
+            'university_number' => '12110234',
+        ]);
+
+        $member = $this->upsertUser('ali.featured@smail.ucas.edu.ps', [
+            'name' => 'علي منصور',
+            'password' => 'password',
+            'role' => RoleEnum::Student,
+            'gender' => 'male',
+            'region' => 'gaza',
+            'specialization_id' => $specialization->id,
+            'term_id' => $termId,
+            'whatsapp' => '970598812245',
+            'university_number' => '12110567',
+        ]);
+
+        // آمن لإعادة التشغيل: إن كان فريق العرض المميز موجوداً نكتفي بتحديث المستخدمين أعلاه
+        $team = Team::withoutGlobalScopes()->withTrashed()->where('name', 'فريق العرض المميز')->first();
+
+        if ($team) {
+            return;
+        }
 
         $team = Team::create([
             'name' => 'فريق العرض المميز',
@@ -60,19 +79,6 @@ class FeaturedProjectSeeder extends Seeder
             'term_id' => $termId,
             'leader_id' => $leader->id,
         ]);
-
-        $member = User::firstOrCreate(
-            ['email' => 'ali.featured@smail.ucas.edu.ps'],
-            [
-                'name' => 'علي منصور',
-                'password' => 'password',
-                'role' => RoleEnum::Student,
-                'specialization_id' => $specialization->id,
-                'term_id' => $termId,
-                'whatsapp' => '970598812245',
-                'university_number' => '12110567',
-            ]
-        );
 
         TeamMember::create([
             'team_id' => $team->id,

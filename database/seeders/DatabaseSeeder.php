@@ -25,6 +25,9 @@ class DatabaseSeeder extends Seeder
             TicketSeeder::class,
             CommitteeInboxSeeder::class,
             ComposeTemplateSeeder::class,
+            MembersDemoSeeder::class,
+            // آخر أمر: تكملة جنس/تخصص/منطقة لكل المستخدمين (بما فيهم الحسابات القديمة)
+            UserCompletionSeeder::class,
         ]);
     }
 }

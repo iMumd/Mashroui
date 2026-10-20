@@ -22,16 +22,16 @@ class PastTermDemoSeeder extends DemoDataSeeder
         $mobile = Specialization::where('name', 'تصميم وبرمجة تطبيقات الموبايل')->first();
         $mediaBachelor = Specialization::where('name', 'تكنولوجيا الوسائط المتعددة')->where('degree', 'bachelor')->first();
 
-        $supYousef = User::create([
-            'name' => 'د. يوسف حماد', 'email' => $this->staffEmail('t2-y.hammad@mashroui.local'),
-            'password' => 'password', 'role' => RoleEnum::Supervisor, 'specialization_id' => $db->id,
+        $supYousef = $this->upsertUser($this->staffEmail('t2-y.hammad@mashroui.local'), [
+            'name' => 'د. يوسف حماد', 'password' => 'password', 'role' => RoleEnum::Supervisor,
+            'gender' => 'male', 'specialization_id' => $db->id,
             'term_id' => $this->termId, 'whatsapp' => '970562298001', 'employee_number' => 'EMP-2001',
-        ]);
-        $supRania = User::create([
-            'name' => 'م. رانيا صبح', 'email' => $this->staffEmail('t2-r.sobh@mashroui.local'),
-            'password' => 'password', 'role' => RoleEnum::Supervisor, 'specialization_id' => $web->id,
+        ], 'EMP-2001');
+        $supRania = $this->upsertUser($this->staffEmail('t2-r.sobh@mashroui.local'), [
+            'name' => 'م. رانيا صبح', 'password' => 'password', 'role' => RoleEnum::Supervisor,
+            'gender' => 'female', 'specialization_id' => $web->id,
             'term_id' => $this->termId, 'whatsapp' => '970592298002', 'employee_number' => 'EMP-2002',
-        ]);
+        ], 'EMP-2002');
 
         // فريق 1: نظام إدارة عيادات بيطرية — مكتمل
         $leader1 = $this->leader('سليم قعدان', 't2-salim.leader@mashroui.local', $db->id);

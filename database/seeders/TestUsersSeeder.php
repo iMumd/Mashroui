@@ -5,53 +5,56 @@ namespace Database\Seeders;
 use App\Enums\RoleEnum;
 use App\Models\AcademicTerm;
 use App\Models\Specialization;
-use App\Models\User;
-use Illuminate\Database\Seeder;
+use Database\Seeders\Concerns\UpsertsUsers;
 
 class TestUsersSeeder extends Seeder
 {
+    use UpsertsUsers;
+
     public function run(): void
     {
         $termId = AcademicTerm::where('is_current', true)->value('id');
         $specializationId = Specialization::value('id');
 
-        User::create([
+        // عضو اللجنة مرتبط بتخصص حتى يرى مجموعات/مشاريع/مقترحات تخصصه فقط (SpecializationScope)
+        $this->upsertUser('committee@ucas.edu.ps', [
             'name' => 'أ. منار حمدان',
-            'email' => 'committee@ucas.edu.ps',
             'password' => 'password',
             'role' => RoleEnum::Committee,
-            // عضو اللجنة مرتبط بتخصص حتى يرى مجموعات/مشاريع/مقترحات تخصصه فقط (SpecializationScope)
+            'gender' => 'female',
             'specialization_id' => $specializationId,
             'whatsapp' => '970569845112',
             'employee_number' => 'EMP-1002',
-        ]);
+        ], 'EMP-1002');
 
-        User::create([
+        $this->upsertUser('supervisor@ucas.edu.ps', [
             'name' => 'م. خالد أبو غزالة',
-            'email' => 'supervisor@ucas.edu.ps',
             'password' => 'password',
             'role' => RoleEnum::Supervisor,
+            'gender' => 'male',
             'specialization_id' => $specializationId,
             'whatsapp' => '970525567234',
             'employee_number' => 'EMP-1003',
-        ]);
+        ], 'EMP-1003');
 
-        User::create([
+        $this->upsertUser('leader@smail.ucas.edu.ps', [
             'name' => 'عبدالله الطويل',
-            'email' => 'leader@smail.ucas.edu.ps',
             'password' => 'password',
             'role' => RoleEnum::Student,
+            'gender' => 'male',
+            'region' => 'gaza',
             'specialization_id' => $specializationId,
             'term_id' => $termId,
             'whatsapp' => '970599887654',
             'university_number' => '12010547',
         ]);
 
-        User::create([
+        $this->upsertUser('student@smail.ucas.edu.ps', [
             'name' => 'زيد النتشة',
-            'email' => 'student@smail.ucas.edu.ps',
             'password' => 'password',
             'role' => RoleEnum::Student,
+            'gender' => 'male',
+            'region' => 'gaza',
             'specialization_id' => $specializationId,
             'term_id' => $termId,
             'whatsapp' => '970568741235',

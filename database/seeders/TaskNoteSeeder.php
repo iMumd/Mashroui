@@ -37,6 +37,10 @@ class TaskNoteSeeder extends Seeder
 
     public function run(): void
     {
+        if (TaskNote::exists()) {
+            return; // الملاحظات تُزرع مرة واحدة فقط
+        }
+
         $tasks = Task::with(['team.leader', 'team.members.student'])->get();
 
         foreach ($tasks as $task) {
