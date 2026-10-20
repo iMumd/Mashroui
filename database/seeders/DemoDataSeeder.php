@@ -407,7 +407,24 @@ class DemoDataSeeder extends Seeder
             ->where('name', $name)->where('term_id', $this->termId)->first();
 
         if ($team) {
-            return [$team, Project::withoutGlobalScopes()->where('team_id', $team->id)->firstOrFail()];
+            $project = Project::withoutGlobalScopes()->where('team_id', $team->id)->firstOrFail();
+
+            // إصلاح بيانات ناقصة في مشروع قائم (اسم/وصف فارغ من حذف قديم في التطبيق)
+            $repair = [];
+
+            if (! $project->name) {
+                $repair['name'] = $projectName;
+            }
+
+            if (! $project->description) {
+                $repair['description'] = $description;
+            }
+
+            if ($repair) {
+                $project->update($repair);
+            }
+
+            return [$team, $project];
         }
 
         $team = Team::create([
