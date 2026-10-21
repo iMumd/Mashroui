@@ -16,6 +16,14 @@ $origins = ['https://masar.slidd.app'];
 if (env('APP_ENV') === 'local') {
     $origins[] = 'http://localhost:5173';
     $origins[] = 'http://127.0.0.1:5173';
+
+    // مصادر إضافية للتطوير من أجهزة الشبكة (مفصولة بفاصلة)
+    foreach (explode(',', (string) env('CORS_LOCAL_ORIGINS', '')) as $extra) {
+        $extra = trim($extra);
+        if ($extra !== '') {
+            $origins[] = $extra;
+        }
+    }
 }
 
 return [
