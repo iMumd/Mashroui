@@ -11,10 +11,9 @@ use App\Services\EvaluationFormService;
 use Illuminate\Database\Seeder;
 
 /**
- * نتائج تقييم تجريبية لمجموعات الفصل الحالي: تعبئة نموذج المشرف (من مشرف المجموعة) ونموذج المناقشين
- * (من مناقشَي جدول المناقشات، وإلا أعضاء لجنة الإشراف) ثم حساب الدرجة النهائية لكل طالب.
- * لتنوّع الحالات: كل سابع مجموعة بلا تقييم، وكل خامسة بتقييم المشرف فقط (قيد التقييم).
- * الدرجات ثابتة لكل مجموعة (mt_srand برقمها) والتعبئة updateOrCreate، فيمكن تشغيله أكثر من مرة.
+ * نتائج تقييم تجريبية لمجموعات الفصل الحالي (المشاريع غير المقترحة فقط):
+ * تعبئة نموذج المشرف (من مشرف المجموعة) ونموذج المناقشين (من مناقشَي جدول المناقشات، وإلا أعضاء اللجنة)
+ * ثم حساب الدرجة النهائية لكل طالب. لتنوّع الحالات: كل سابع مجموعة بلا تقييم، وكل خامسة بتقييم المشرف فقط.
  */
 class EvaluationResultsSeeder extends Seeder
 {
@@ -23,8 +22,13 @@ class EvaluationResultsSeeder extends Seeder
         $committee = User::where('role', RoleEnum::Committee)->orderBy('id')->get(['id', 'name']);
         $users = User::whereIn('role', [RoleEnum::Supervisor, RoleEnum::Committee])->get(['id', 'name'])->keyBy('name');
 
-        $teams = Team::with('specialization', 'members', 'project')->whereNotNull('supervisor_id')->orderBy('section')->orderBy('id')->get()
-            ->filter(fn (Team $t) => $t->members->isNotEmpty())->values();
+        $teams = Team::with('specialization', 'members', 'project')
+            ->whereNotNull('supervisor_id')
+            ->orderBy('section')
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (Team $t) => $t->members->isNotEmpty() && $t->project && $t->project->status->value !== 'proposed')
+            ->values();
 
         foreach ($teams as $i => $team) {
             if ($i % 7 === 6) {
