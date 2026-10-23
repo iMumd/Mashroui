@@ -19,7 +19,7 @@ class SuperAdminSeeder extends Seeder
             'gender' => 'male',
             'whatsapp' => '970599112233',
             'employee_number' => 'EMP-1001',
-            'must_change_password' => true,
+            'must_change_password' => false,
         ], 'EMP-1001');
     }
 }
