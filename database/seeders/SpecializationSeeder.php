@@ -36,6 +36,20 @@ class SpecializationSeeder extends Seeder
         ]);
 
         Specialization::firstOrCreate([
+            'department_id' => $software->id,
+            'name' => 'الشبكات وأمن المعلومات',
+        ], [
+            'degree' => DegreeEnum::Diploma,
+        ]);
+
+        Specialization::firstOrCreate([
+            'department_id' => $software->id,
+            'name' => 'الأنظمة الذكية',
+        ], [
+            'degree' => DegreeEnum::Diploma,
+        ]);
+
+        Specialization::firstOrCreate([
             'department_id' => $media->id,
             'name' => 'تكنولوجيا الوسائط المتعددة',
             'degree' => DegreeEnum::Diploma,
