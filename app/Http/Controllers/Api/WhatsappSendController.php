@@ -25,6 +25,13 @@ class WhatsappSendController extends Controller
             403
         );
 
+        // لا نرجّع "تم الإرسال" بينما الخدمة غير مهيّأة: نكشف نقص الإعداد بوضوح بدل فشل صامت في الطابور
+        abort_if(
+            blank(config('services.whatsapp.url')) || blank(config('services.whatsapp.token')),
+            422,
+            'خدمة واتساب غير مهيّأة على الخادم — يلزم ضبط WHATSAPP_WEBHOOK_URL وWHATSAPP_WEBHOOK_TOKEN.'
+        );
+
         $data = $request->validate([
             'recipients' => ['required', 'array', 'min:1', 'max:100'],
             'recipients.*.phone' => ['required', new WhatsappNumber],
