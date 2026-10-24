@@ -66,7 +66,7 @@ Route::get('/external/ai/student-team', [AiProjectExportController::class, 'stud
     ->middleware(['ai-key', 'throttle:public']);
 
 Route::get('/committee/dashboard-stats', [CommitteeDashboardController::class, 'index'])
-    ->middleware(['auth:sanctum', 'throttle:api', 'term']);
+    ->middleware(['auth:sanctum', 'active', 'throttle:api', 'term']);
 
 // روابط تحميل موقّعة مؤقتة — تُفتح مباشرة بالمتصفح بدون توكن (التوقيع نفسه هو التفويض)، عشان تتفادى
 // مشاكل تحميل blob عبر JS (حاجب النوافذ المنبثقة، إضافات المتصفح، إلخ)
@@ -75,7 +75,7 @@ Route::get('/proposals/{proposal}/download-signed', [ProposalController::class, 
 Route::get('/final-reports/{finalReport}/download-signed', [FinalReportController::class, 'downloadSigned'])
     ->name('final-reports.download-signed')->middleware('signed');
 
-Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/me/change-password', [AuthController::class, 'changePassword']);
 

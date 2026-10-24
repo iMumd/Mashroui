@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CheckRestriction;
+use App\Http\Middleware\EnsureActive;
 use App\Http\Middleware\EnsureTerm;
 use App\Http\Middleware\ForcePasswordChange;
 use App\Http\Middleware\VerifyAiApiKey;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'restriction' => CheckRestriction::class,
+            'active' => EnsureActive::class,
             'force-password-change' => ForcePasswordChange::class,
             'term' => EnsureTerm::class,
             'ai-key' => VerifyAiApiKey::class,

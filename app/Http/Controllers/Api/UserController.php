@@ -157,6 +157,11 @@ class UserController extends Controller
             'restricted_reason' => $isRestricting ? $data['reason'] : null,
         ]);
 
+        // إيقاف الدخول يقطع الجلسات الشغّالة فورًا: حذف توكنات المستخدم كلها حتى لا يُكمل استخدام المنصة بتوكن قديم
+        if ($isRestricting) {
+            $user->tokens()->delete();
+        }
+
         AuditLog::create([
             'user_id' => $request->user()->id,
             'action' => $isRestricting ? 'restrict' : 'unrestrict',
