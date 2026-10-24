@@ -84,7 +84,16 @@ class User extends Authenticatable
         return $this->belongsToMany(Specialization::class);
     }
 
-    /** معرّفات تخصصات العضو الفعّالة: pivot إن وُجد، وإلا العمود المفرد — مع تخزين مؤقّت لكل كائن */
+    /** أقسام عضو اللجنة الكاملة — يرى كل تخصصاتها */
+    public function departments(): BelongsToMany
+    {
+        return $this->belongsToMany(Department::class);
+    }
+
+    /**
+     * معرّفات تخصصات العضو الفعّالة: تخصصاته المحددة (pivot أو العمود المفرد)
+     * + كل تخصصات أقسامه الكاملة — مع تخزين مؤقّت لكل كائن.
+     */
     public function effectiveSpecializationIds(): array
     {
         if ($this->effectiveSpecializationIdsCache !== null) {
@@ -99,7 +108,16 @@ class User extends Authenticatable
             $ids = [$this->specialization_id];
         }
 
-        return $this->effectiveSpecializationIdsCache = array_map('intval', $ids);
+        $deptIds = $this->relationLoaded('departments')
+            ? $this->departments->pluck('id')->all()
+            : $this->departments()->pluck('departments.id')->all();
+
+        if ($deptIds) {
+            $fromDepts = Specialization::whereIn('department_id', $deptIds)->pluck('id')->all();
+            $ids = array_merge($ids, $fromDepts);
+        }
+
+        return $this->effectiveSpecializationIdsCache = array_values(array_unique(array_map('intval', $ids)));
     }
 
     public function academicTerm(): BelongsTo

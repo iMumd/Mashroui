@@ -93,7 +93,7 @@ class UserController extends Controller
             $query->withCount('supervisedTasks')->withMax('tokens', 'last_used_at');
         }
 
-        $users = $query->with('specializations')->orderBy('name')->get();
+        $users = $query->with('specializations', 'departments')->orderBy('name')->get();
 
         return UserResource::collection($users);
     }
@@ -113,8 +113,10 @@ class UserController extends Controller
             'gender' => ['nullable', Rule::enum(GenderEnum::class)],
             'region' => ['nullable', Rule::enum(RegionEnum::class)],
             'specialization_id' => ['nullable', 'exists:specializations,id'],
-            'specialization_ids' => ['sometimes', 'nullable', 'array', 'max:2'],
+            'specialization_ids' => ['sometimes', 'nullable', 'array', 'max:3'],
             'specialization_ids.*' => ['integer', 'exists:specializations,id'],
+            'department_ids' => ['sometimes', 'nullable', 'array'],
+            'department_ids.*' => ['integer', 'exists:departments,id'],
         ]);
 
         $syncSpecs = $request->has('specialization_ids');
@@ -123,8 +125,19 @@ class UserController extends Controller
             : null;
         unset($data['specialization_ids']);
 
-        if ($syncSpecs && $user->role === RoleEnum::Committee && count($specIds) < 1) {
-            throw ValidationException::withMessages(['specialization_ids' => 'عضو اللجنة يجب ربطه بتخصص واحد على الأقل.']);
+        $syncDepts = $request->has('department_ids');
+        $deptIds = $syncDepts
+            ? array_values(array_unique(array_map('intval', $data['department_ids'] ?? [])))
+            : null;
+        unset($data['department_ids']);
+
+        // عضو اللجنة لازم نطاق واحد على الأقل: تخصص محدد أو قسم كامل
+        if ($user->role === RoleEnum::Committee && ($syncSpecs || $syncDepts)) {
+            $effSpecs = $syncSpecs ? count($specIds) : $user->specializations()->count();
+            $effDepts = $syncDepts ? count($deptIds) : $user->departments()->count();
+            if ($effSpecs < 1 && $effDepts < 1) {
+                throw ValidationException::withMessages(['specialization_ids' => 'عضو اللجنة يجب ربطه بتخصص أو قسم واحد على الأقل.']);
+            }
         }
 
         if ($syncSpecs) {
@@ -135,6 +148,11 @@ class UserController extends Controller
 
         if ($syncSpecs) {
             $user->specializations()->sync($specIds);
+        }
+        if ($syncDepts) {
+            $user->departments()->sync($deptIds);
+        }
+        if ($syncSpecs || $syncDepts) {
             $user->effectiveSpecializationIdsCache = null;
         }
 
@@ -344,11 +362,13 @@ class UserController extends Controller
             // جنس الطالب إجباري حتى يظهر في قائمة الطلاب/الطالبات الصحيحة (التصنيف يعتمد عليه)
             'gender' => ['nullable', Rule::enum(GenderEnum::class), 'required_if:role,'.RoleEnum::Student->value],
             'region' => ['nullable', Rule::enum(RegionEnum::class), 'required_if:role,'.RoleEnum::Student->value],
-            // عضو اللجنة لا بد أن يُربط بتخصص واحد على الأقل (حتى تخصصين) حتى يرى مجموعات/مشاريع تخصصاته فقط
-            // (SpecializationScope يعمل فقط عند وجود تخصصات)؛ توسيعه إلى "الكل" قرار لاحق للإدارة.
+            // عضو اللجنة لا بد أن يُربط بنطاق واحد على الأقل: حتى 3 تخصصات محددة أو أقسام كاملة
+            // (SpecializationScope يعمل عند وجود تخصصات فعّالة، وأقسام العضو تُوسَّع إلى كل تخصصاتها).
             'specialization_id' => ['nullable', 'exists:specializations,id'],
-            'specialization_ids' => ['nullable', 'array', 'max:2'],
+            'specialization_ids' => ['nullable', 'array', 'max:3'],
             'specialization_ids.*' => ['integer', 'exists:specializations,id'],
+            'department_ids' => ['nullable', 'array'],
+            'department_ids.*' => ['integer', 'exists:departments,id'],
         ], [
             'gender.required_if' => 'جنس الطالب (طالب/طالبة) مطلوب.',
             'region.required_if' => 'مكان تواجد الطالب مطلوب.',
@@ -366,8 +386,10 @@ class UserController extends Controller
             : (isset($data['specialization_id']) ? [$data['specialization_id']] : []);
         $specIds = array_values(array_unique(array_map('intval', $specIds)));
 
-        if ($data['role'] === RoleEnum::Committee->value && count($specIds) < 1) {
-            throw ValidationException::withMessages(['specialization_ids' => 'عضو اللجنة يجب ربطه بتخصص واحد على الأقل.']);
+        $deptIds = array_values(array_unique(array_map('intval', $data['department_ids'] ?? [])));
+
+        if ($data['role'] === RoleEnum::Committee->value && count($specIds) < 1 && count($deptIds) < 1) {
+            throw ValidationException::withMessages(['specialization_ids' => 'عضو اللجنة يجب ربطه بتخصص أو قسم واحد على الأقل.']);
         }
 
         // عضو اللجنة المرتبط بتخصص: الطلاب والمشرفون الذين يضيفهم يُربطون بأول تخصص من تخصصاته تلقائيًا
@@ -386,7 +408,7 @@ class UserController extends Controller
             throw ValidationException::withMessages(['term_id' => 'لا يوجد سنة دراسية محدّدة.']);
         }
 
-        $result = DB::transaction(function () use ($data, $termId, $specIds) {
+        $result = DB::transaction(function () use ($data, $termId, $specIds, $deptIds) {
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -405,6 +427,9 @@ class UserController extends Controller
 
             if ($specIds) {
                 $user->specializations()->sync($specIds);
+            }
+            if ($deptIds) {
+                $user->departments()->sync($deptIds);
             }
 
             $invite = InviteLink::create([
