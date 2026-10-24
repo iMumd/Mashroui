@@ -47,6 +47,7 @@ class TaskController extends Controller
             'team_id' => ['nullable', 'integer'],
             'supervisor_id' => ['nullable', 'integer'],
             'degree' => ['nullable', Rule::in(['diploma', 'bachelor'])],
+            'department_id' => ['nullable', 'integer'],
             'specialization_id' => ['nullable', 'integer'],
             'assignee_id' => ['nullable', 'integer'],
             'status' => ['nullable', Rule::in([...array_column(TaskStatusEnum::cases(), 'value'), 'late'])],
@@ -62,6 +63,7 @@ class TaskController extends Controller
             ->when($data['team_id'] ?? null, fn ($q, $id) => $q->whereKey($id))
             ->when($data['supervisor_id'] ?? null, fn ($q, $id) => $q->where('supervisor_id', $id))
             ->when($data['specialization_id'] ?? null, fn ($q, $id) => $q->where('specialization_id', $id))
+            ->when($data['department_id'] ?? null, fn ($q, $id) => $q->whereHas('specialization', fn ($q) => $q->where('department_id', $id)))
             ->when($data['degree'] ?? null, fn ($q, $d) => $q->whereHas('specialization', fn ($q) => $q->where('degree', $d))));
         // مهام بلا فريق (لجنة الإشراف أو المشرفين): الفصل من term_id، والجهة من دور المكلّف
         $term = app(CurrentTerm::class)->get();
@@ -69,7 +71,7 @@ class TaskController extends Controller
             ->when($term, fn ($q, $id) => $q->where('term_id', $id))
             ->when($role, fn ($q) => $q->whereHas('assignees', fn ($q) => $q->where('role', $role)));
         // فلتر المجموعة أو المشرف يخص مهام المجموعات فقط
-        $teamFilter = isset($data['team_id']) || isset($data['degree']) || isset($data['specialization_id']);
+        $teamFilter = isset($data['team_id']) || isset($data['degree']) || isset($data['specialization_id']) || isset($data['department_id']);
         $audience = $data['audience'] ?? ($teamFilter || isset($data['supervisor_id']) ? 'groups' : null);
 
         // جهة "المجموعات" تشمل مهام المشرفين أنفسهم (منفصلة عن لجنة الإشراف)؛ فلتر المشرف = مهام مجموعاته + مهامه هو
