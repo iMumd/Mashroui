@@ -106,7 +106,10 @@ class UserController extends Controller
             'name' => ['sometimes', 'string', 'max:150'],
             'whatsapp' => ['nullable', new WhatsappNumber],
             'employee_number' => ['nullable', 'string', 'max:30'],
-            'university_number' => ['nullable', 'string', 'max:30'],
+            // الرقم الجامعي للطالب لا يُفرَّغ بعد ضبطه (إجباري عند إرساله لطالب)
+            'university_number' => $user->role === RoleEnum::Student
+                ? ['sometimes', 'required', 'string', 'max:30']
+                : ['nullable', 'string', 'max:30'],
             'gender' => ['nullable', Rule::enum(GenderEnum::class)],
             'region' => ['nullable', Rule::enum(RegionEnum::class)],
             'specialization_id' => ['nullable', 'exists:specializations,id'],
@@ -331,7 +334,8 @@ class UserController extends Controller
             'whatsapp' => ['nullable', new WhatsappNumber],
             // الرقم الوظيفي إجباري للمشرف (معرّفه الرسمي في الكلية)
             'employee_number' => ['nullable', 'string', 'max:30', 'required_if:role,'.RoleEnum::Supervisor->value],
-            'university_number' => ['nullable', 'string', 'max:30'],
+            // الرقم الجامعي إجباري للطالب (معرّفه الرسمي في الكلية)
+            'university_number' => ['nullable', 'string', 'max:30', 'required_if:role,'.RoleEnum::Student->value],
             // جنس الطالب إجباري حتى يظهر في قائمة الطلاب/الطالبات الصحيحة (التصنيف يعتمد عليه)
             'gender' => ['nullable', Rule::enum(GenderEnum::class), 'required_if:role,'.RoleEnum::Student->value],
             'region' => ['nullable', Rule::enum(RegionEnum::class), 'required_if:role,'.RoleEnum::Student->value],
@@ -344,6 +348,7 @@ class UserController extends Controller
             'gender.required_if' => 'جنس الطالب (طالب/طالبة) مطلوب.',
             'region.required_if' => 'مكان تواجد الطالب مطلوب.',
             'employee_number.required_if' => 'الرقم الوظيفي للمشرف مطلوب.',
+            'university_number.required_if' => 'الرقم الجامعي للطالب مطلوب.',
         ]);
 
         $expectedDomain = $data['role'] === RoleEnum::Student->value ? CollegeEmail::STUDENT_DOMAIN : CollegeEmail::STAFF_DOMAIN;
