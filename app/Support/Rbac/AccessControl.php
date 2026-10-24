@@ -9,10 +9,17 @@ use App\Models\UserRestriction;
 
 class AccessControl
 {
-    public const MODULES = ['projects', 'proposals', 'tasks', 'meetings'];
+    // القيود تقتصر على قبول/رفض المقترحات؛ المهام والاجتماعات والمشاريع لم تعد قابلة للتقييد.
+    public const MODULES = ['proposals'];
 
     public function can(User $user, string $module): AccessLevelEnum
     {
+        // أي وحدة خارج القائمة (مهام/اجتماعات/مشاريع) غير قابلة للتقييد — صلاحية كاملة دائمًا،
+        // حتى لو بقيت صفوف قيود قديمة في قاعدة البيانات.
+        if (! in_array($module, self::MODULES, true)) {
+            return AccessLevelEnum::Full;
+        }
+
         $restriction = UserRestriction::query()
             ->where('user_id', $user->id)
             ->where('module', $module)
