@@ -15,11 +15,14 @@ class NextTermJourneySeeder extends Seeder
 
     public function run(): void
     {
-        $term = AcademicTerm::where('name', 'الفصل الثاني 2026/2027')->first() ?? AcademicTerm::first();
+        // الفصل القادم: أحدث فصل غير حالي (وليس الفصل الحالي أو السابق)
+        $term = AcademicTerm::where('name', 'السنة الدراسية 2027/2028')->first()
+            ?? AcademicTerm::where('is_current', false)->orderByDesc('id')->first()
+            ?? AcademicTerm::first();
         $this->termId = $term->id;
         $this->studentSeq = 6000;
 
-        $supervisor = fn($e) => User::where('email', $e)->firstOrFail();
+        $supervisor = fn ($e) => User::where('email', $e)->firstOrFail();
 
         $specSoft = $this->spec('برمجيات وقواعد بيانات');
         $specWeb = $this->spec('تصميم وتطوير مواقع الويب');

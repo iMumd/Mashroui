@@ -44,8 +44,9 @@ class UserCompletionSeeder extends Seeder
                     $fill['specialization_id'] = $specIds[$user->id % count($specIds)];
                 }
 
-                // 4) الفصل الحالي للطلاب
-                if ($user->role === RoleEnum::Student && $user->term_id === null && $termId) {
+                // 4) الفصل الحالي للطلاب والمشرفين وأعضاء اللجنة (كل فصل له كوادره)
+                if (in_array($user->role, [RoleEnum::Student, RoleEnum::Supervisor, RoleEnum::Committee], true)
+                    && $user->term_id === null && $termId) {
                     $fill['term_id'] = $termId;
                 }
 

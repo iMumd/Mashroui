@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Enums\DiscussionStatusEnum;
 use App\Enums\ProjectStatusEnum;
-use App\Enums\ProposalStatusEnum;
 use App\Enums\RoleEnum;
 use App\Enums\TaskStatusEnum;
 use App\Models\AcademicTerm;
@@ -18,11 +18,14 @@ class PastTermJourneySeeder extends Seeder
 
     public function run(): void
     {
-        $term = AcademicTerm::where('name', 'الفصل الثاني 2025/2026')->first() ?? AcademicTerm::first();
+        // الفصل السابق: أحد الفصول غير الحالية الأقدم (وليس الفصل الحالي)
+        $term = AcademicTerm::where('name', 'السنة الدراسية 2025/2026')->first()
+            ?? AcademicTerm::where('is_current', false)->orderBy('id')->first()
+            ?? AcademicTerm::first();
         $this->termId = $term->id;
         $this->studentSeq = 4000;
 
-        $supervisor = fn($e) => User::where('email', $e)->firstOrFail();
+        $supervisor = fn ($e) => User::where('email', $e)->firstOrFail();
         $committee = User::where('role', RoleEnum::Committee)->orderBy('id')->first();
 
         $specSoft = $this->spec('برمجيات وقواعد بيانات');
@@ -58,7 +61,7 @@ class PastTermJourneySeeder extends Seeder
                 'discussion_time' => '09:00',
                 'committee' => 'د. نور الشريف، م. رامي قاسم، أ. هاني المصري',
                 'whatsapp' => null,
-                'status' => \App\Enums\DiscussionStatusEnum::Confirmed,
+                'status' => DiscussionStatusEnum::Confirmed,
                 'term_id' => $this->termId,
             ]);
         }
@@ -90,7 +93,7 @@ class PastTermJourneySeeder extends Seeder
                 'discussion_time' => '11:00',
                 'committee' => 'د. سامي أبو ناصر، د. إيمان الحسن، م. آمال صبري',
                 'whatsapp' => null,
-                'status' => \App\Enums\DiscussionStatusEnum::Confirmed,
+                'status' => DiscussionStatusEnum::Confirmed,
                 'term_id' => $this->termId,
             ]);
         }
@@ -122,7 +125,7 @@ class PastTermJourneySeeder extends Seeder
                 'discussion_time' => '12:00',
                 'committee' => 'د. وليد بركة، د. فادي التاج، م. رامي قاسم',
                 'whatsapp' => null,
-                'status' => \App\Enums\DiscussionStatusEnum::Confirmed,
+                'status' => DiscussionStatusEnum::Confirmed,
                 'term_id' => $this->termId,
             ]);
         }
@@ -152,7 +155,7 @@ class PastTermJourneySeeder extends Seeder
                 'discussion_time' => '09:30',
                 'committee' => 'د. إيناس العبادلة، م. رشا العدوان، أ. منار حمدان',
                 'whatsapp' => null,
-                'status' => \App\Enums\DiscussionStatusEnum::Confirmed,
+                'status' => DiscussionStatusEnum::Confirmed,
                 'term_id' => $this->termId,
             ]);
         }
