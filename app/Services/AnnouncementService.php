@@ -85,8 +85,11 @@ class AnnouncementService
     public function sendRatings(array $data, User $author): string
     {
         $ids = array_map('intval', array_column($data['ratings'], 'supervisor_id'));
-        if (count($ids) !== count(array_unique($ids)) || User::whereIn('id', $ids)->where('role', RoleEnum::Supervisor)->count() !== count($ids)) {
-            throw ValidationException::withMessages(['ratings' => 'المستلمون يجب أن يكونوا مشرفين دون تكرار.']);
+        $currentTermId = app(CurrentTerm::class)->get();
+
+        if (count($ids) !== count(array_unique($ids))
+            || User::whereIn('id', $ids)->where('role', RoleEnum::Supervisor)->where('term_id', $currentTermId)->count() !== count($ids)) {
+            throw ValidationException::withMessages(['ratings' => 'المستلمون يجب أن يكونوا مشرفين في الفصل الحالي دون تكرار.']);
         }
 
         $batch = (string) Str::uuid();
@@ -142,10 +145,13 @@ class AnnouncementService
     {
         $ids = array_values(array_unique(array_map('intval', $userIds)));
 
-        if (! $ids || User::whereIn('id', $ids)->where('role', $role)->count() !== count($ids)) {
+        // المستلمون من الفصل الحالي فقط (لجنة/مشرفو فصل آخر لا يستلمون إعلانات هذا الفصل)
+        $currentTermId = app(CurrentTerm::class)->get();
+
+        if (! $ids || User::whereIn('id', $ids)->where('role', $role)->where('term_id', $currentTermId)->count() !== count($ids)) {
             throw ValidationException::withMessages(['user_ids' => $role === RoleEnum::Committee
-                ? 'المستلمون يجب أن يكونوا أعضاء في لجنة الإشراف.'
-                : 'المستلمون يجب أن يكونوا مشرفين.']);
+                ? 'المستلمون يجب أن يكونوا أعضاء في لجنة الإشراف الحالية.'
+                : 'المستلمون يجب أن يكونوا مشرفين في الفصل الحالي.']);
         }
 
         return [
@@ -231,7 +237,7 @@ class AnnouncementService
     {
         $attachments = AnnouncementAttachment::where('batch', $batch)->get();
 
-        DB::transaction(function () use ($batch, $attachments) {
+        DB::transaction(function () use ($batch) {
             Announcement::where('batch', $batch)->delete();
             AnnouncementAttachment::where('batch', $batch)->delete();
         });

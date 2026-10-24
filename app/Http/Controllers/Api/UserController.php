@@ -47,9 +47,9 @@ class UserController extends Controller
 
         $termId = $currentTerm->get();
 
-        // الطلاب مرتبطون بالسنة الدراسية؛ حسابات المشرفين واللجنة عابرة للسنوات (بلا term_id)
-        $query = User::where('role', $data['role'])
-            ->when($data['role'] === RoleEnum::Student->value, fn ($q) => $q->where('term_id', $termId));
+        // كل الحسابات (الطلاب والمشرفون ولجنة الإشراف) مرتبطة بالفصل الدراسي:
+        // الفصل الجديد يبدأ بقوائم فارغة ويُضاف له مشرفوه ولجنته، وفصل سابق لا يظهر في الحالي.
+        $query = User::where('role', $data['role'])->where('term_id', $termId);
 
         if ($data['role'] === RoleEnum::Student->value && $request->boolean('unassigned')) {
             $assignedIds = TeamMember::whereHas('team', fn ($q) => $q->where('term_id', $termId))->pluck('student_id');
@@ -187,7 +187,7 @@ class UserController extends Controller
         return response()->json(null, 204);
     }
 
-    public function trashed(Request $request)
+    public function trashed(Request $request, CurrentTerm $currentTerm)
     {
         $actor = $request->user();
 
@@ -203,7 +203,12 @@ class UserController extends Controller
             'role' => ['required', Rule::in($allowedRoles)],
         ]);
 
-        $users = User::onlyTrashed()->where('role', $data['role'])->orderBy('name')->get();
+        // المحذوفون أيضًا محصورون بالفصل الحالي حتى لا يظهر أرشيف فصل آخر
+        $users = User::onlyTrashed()
+            ->where('role', $data['role'])
+            ->where('term_id', $currentTerm->get())
+            ->orderBy('name')
+            ->get();
 
         return UserResource::collection($users);
     }

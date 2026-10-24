@@ -13,6 +13,7 @@ use App\Models\TeamMember;
 use App\Models\User;
 use App\Rules\CollegeEmail;
 use App\Rules\WhatsappNumber;
+use App\Support\CurrentTerm;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -121,7 +122,9 @@ class TeamImportService
         $seenEmails = [];
         $seenUniversityNumbers = [];
         $specializationsByName = Specialization::pluck('id', 'name');
+        // المشرفون المطابقون بالاسم من الفصل الحالي فقط (أسماء مشرفي الفصول السابقة لا تُستخدم)
         $supervisorsByName = User::where('role', RoleEnum::Supervisor)
+            ->where('term_id', app(CurrentTerm::class)->get())
             ->get(['id', 'name'])
             ->groupBy('name');
 

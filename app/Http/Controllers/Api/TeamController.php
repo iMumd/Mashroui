@@ -9,10 +9,12 @@ use App\Models\AuditLog;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Services\TeamService;
+use App\Support\CurrentTerm;
 use App\Support\Rbac\TeamMembership;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 
 class TeamController extends Controller
 {
@@ -34,19 +36,23 @@ class TeamController extends Controller
         return TeamResource::collection($query->get());
     }
 
-    public function store(Request $request, TeamService $teamService)
+    public function store(Request $request, TeamService $teamService, CurrentTerm $currentTerm)
     {
         Gate::authorize('create', Team::class);
+
+        $termId = $currentTerm->get();
+        abort_if($termId === null, 422, 'لا يوجد فصل دراسي محدد.');
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'section' => ['nullable', 'string', 'max:50'],
-            'supervisor_id' => ['required', 'exists:users,id'],
+            // المشرف والطلاب من الفصل الحالي فقط (كل فصل له مشرفوه وطلابه)
+            'supervisor_id' => ['required', $this->currentTermUser(RoleEnum::Supervisor, $termId)],
             'specialization_id' => ['required', 'exists:specializations,id'],
             'member_ids' => ['required', 'array', 'min:1', 'max:4'],
             'member_ids.*' => [
                 'distinct',
-                Rule::exists('users', 'id')->where('role', 'student'),
+                $this->currentTermUser(RoleEnum::Student, $termId),
             ],
             'leader_id' => ['required', Rule::in($request->input('member_ids', []))],
         ]);
@@ -64,14 +70,16 @@ class TeamController extends Controller
         return new TeamResource($team->load('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports'));
     }
 
-    public function update(Request $request, Team $team)
+    public function update(Request $request, Team $team, CurrentTerm $currentTerm)
     {
         Gate::authorize('update', $team);
+
+        abort_if($currentTerm->get() === null, 422, 'لا يوجد فصل دراسي محدد.');
 
         $data = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:150'],
             'section' => ['sometimes', 'nullable', 'string', 'max:50'],
-            'supervisor_id' => ['sometimes', 'required', 'exists:users,id'],
+            'supervisor_id' => ['sometimes', 'required', $this->currentTermUser(RoleEnum::Supervisor, $currentTerm->get())],
             'specialization_id' => ['sometimes', 'required', 'exists:specializations,id'],
         ]);
 
@@ -125,12 +133,14 @@ class TeamController extends Controller
         return new TeamResource($team->load('members.student', 'supervisor', 'leader', 'project.proposal', 'project.finalReports'));
     }
 
-    public function addMember(Request $request, Team $team, TeamService $teamService)
+    public function addMember(Request $request, Team $team, TeamService $teamService, CurrentTerm $currentTerm)
     {
         Gate::authorize('update', $team);
 
+        abort_if($currentTerm->get() === null, 422, 'لا يوجد فصل دراسي محدد.');
+
         $data = $request->validate([
-            'student_id' => ['required', Rule::exists('users', 'id')->where('role', 'student')],
+            'student_id' => ['required', $this->currentTermUser(RoleEnum::Student, $currentTerm->get())],
         ]);
 
         $team = $teamService->addMember($team, $data['student_id']);
@@ -158,5 +168,13 @@ class TeamController extends Controller
         $team = $teamService->updateLeader($team, $data['student_id']);
 
         return new TeamResource($team);
+    }
+
+    /** قاعدة وجود مستخدم بدور معيّن داخل الفصل الحالي — تُستخدم في تحقق المشرف والطلاب */
+    private function currentTermUser(RoleEnum $role, ?int $termId): Exists
+    {
+        return Rule::exists('users', 'id')
+            ->where('role', $role->value)
+            ->where('term_id', $termId);
     }
 }
