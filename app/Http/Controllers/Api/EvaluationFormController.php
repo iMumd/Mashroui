@@ -96,9 +96,12 @@ class EvaluationFormController extends Controller
     {
         $user = $request->user();
         $isStaff = in_array($user->role, self::STAFF, true);
+        $isSuperAdmin = $user->role === RoleEnum::SuperAdmin;
         $own = $user->id === $team->supervisor_id;
+        // عضوية لجنة مناقشة هذه المجموعة (بالاسم ضمن لجنة المناقشة المؤكّدة)
+        $inCommittee = $service->examinedTeamIds($user)->contains($team->id);
         // المشرف المناقِش لهذه المجموعة يعبّئ نموذج المناقشين لها (وليس لمجموعاته هو)
-        $examines = ! $isStaff && $service->examinedTeamIds($user)->contains($team->id);
+        $examines = ! $isStaff && $inCommittee;
         // المشرف: نموذج المشرف لمجموعاته، ونماذج المناقشين لمجموعاته (اطلاع) وللمجموعات التي يناقشها (تعبئة)
         abort_unless($isStaff || $own || $examines, 403);
 
@@ -134,9 +137,13 @@ class EvaluationFormController extends Controller
             // المناقش يرى علامة لجنة المناقشة فقط
             'results' => $isStaff || $own ? $results : $results->map(fn ($r) => ['student_id' => $r->student_id, 'committee_score' => $r->committee_score]),
             // النماذج التي يعبّئها المستخدم؛ الباقي للعرض فقط
+            // الإدارة العامة: نموذج المناقشين فقط إن كانت ضمن لجنة مناقشة المجموعة (وإلا يُخفى)؛ نموذج المشرف يبقى متاحًا للتصحيح
+            // لجنة الإشراف: كل النماذج (دون تقييد)
             // المشرف: نموذج المشرف لمجموعته + نموذج المناقشين للمجموعات التي يناقشها
             'editable' => $isStaff
-                ? $forms->pluck('id')
+                ? ($isSuperAdmin
+                    ? $forms->filter(fn ($f) => $f->kind !== 'examiner' || $inCommittee)->pluck('id')->values()
+                    : $forms->pluck('id'))
                 : $forms->filter(fn ($f) => ($f->kind === 'supervisor' && $own) || ($f->kind === 'examiner' && $examines))->pluck('id')->values(),
         ]);
     }
@@ -166,11 +173,13 @@ class EvaluationFormController extends Controller
     {
         $user = $request->user();
         $isStaff = in_array($user->role, self::STAFF, true);
+        $isSuperAdmin = $user->role === RoleEnum::SuperAdmin;
+        $inCommittee = $service->examinedTeamIds($user)->contains($team->id);
         // نموذج المشرف: مشرف المجموعة أو الإدارة/اللجنة
-        // نموذج المناقشين: الإدارة/اللجنة، أو المشرف المناقِش لهذه المجموعة (ضمن مجموعاته التي يناقشها، لا مجموعاته هو)
+        // نموذج المناقشين: لجنة الإشراف دائمًا؛ الإدارة العامة فقط إن كانت ضمن لجنة مناقشة المجموعة؛ أو المشرف المناقِش لها
         $canSubmit = $form->kind === 'supervisor'
             ? ($isStaff || $user->id === $team->supervisor_id)
-            : ($isStaff || $service->examinedTeamIds($user)->contains($team->id));
+            : (($isStaff && ! $isSuperAdmin) || $inCommittee);
         abort_unless($canSubmit, 403);
         abort_unless($service->formsFor($team->loadMissing('specialization'))->contains('id', $form->id), 422, 'هذا النموذج لا يخص درجة هذه المجموعة.');
 
