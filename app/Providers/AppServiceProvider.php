@@ -34,7 +34,8 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('manage-org-structure', fn (User $user) => false);
 
-        Gate::define('manage-restrictions', fn (User $user) => $user->role === RoleEnum::Supervisor);
+        // المشرف (قيود فريقه) ولجنة الإشراف (صلاحيات مشرفيها) يصلون لبوابة القيود؛ السوبر أدمن عبر Gate::before.
+        Gate::define('manage-restrictions', fn (User $user) => in_array($user->role, [RoleEnum::Supervisor, RoleEnum::Committee], true));
 
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)->by(strtolower((string) $request->input('email')).'|'.$request->ip()));
 

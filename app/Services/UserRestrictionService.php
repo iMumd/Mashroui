@@ -53,6 +53,11 @@ class UserRestrictionService
             return true;
         }
 
+        // لجنة الإشراف تطّلع على صلاحيات المشرفين (كما تديرهم في إدارة الأعضاء)
+        if ($actor->role === RoleEnum::Committee) {
+            return $target->role === RoleEnum::Supervisor;
+        }
+
         return $actor->role === RoleEnum::Supervisor && $this->isOwnTeamMember($actor, $target);
     }
 
@@ -61,6 +66,15 @@ class UserRestrictionService
         if ($actor->role === RoleEnum::SuperAdmin) {
             if ($target->role !== RoleEnum::Supervisor) {
                 throw ValidationException::withMessages(['user_id' => 'التقييد الفردي متاح للمشرفين فقط.']);
+            }
+
+            return;
+        }
+
+        // لجنة الإشراف تعدّل صلاحيات المشرفين (رفع/خفض مستوى الوحدات القابلة للتقييد)
+        if ($actor->role === RoleEnum::Committee) {
+            if ($target->role !== RoleEnum::Supervisor) {
+                throw ValidationException::withMessages(['user_id' => 'تعديل الصلاحيات متاح للمشرفين فقط.']);
             }
 
             return;
