@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DiscussionController;
 use App\Http\Controllers\Api\DiscussionExportController;
 use App\Http\Controllers\Api\DiscussionImportController;
+use App\Http\Controllers\Api\ExaminerController;
 use App\Http\Controllers\Api\EmailRelayController;
 use App\Http\Controllers\Api\FinalReportController;
 use App\Http\Controllers\Api\InviteController;
@@ -238,6 +239,8 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
             Route::post('/discussions/import/preview', [DiscussionImportController::class, 'preview']);
             Route::post('/discussions/import/confirm', [DiscussionImportController::class, 'confirm']);
             Route::apiResource('discussions', DiscussionController::class)->except(['create', 'edit']);
+
+            Route::apiResource('examiners', ExaminerController::class)->only(['index', 'store', 'destroy']);
         });
     });
 });
