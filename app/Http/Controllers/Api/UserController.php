@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\AccessLevelEnum;
 use App\Enums\GenderEnum;
 use App\Enums\RegionEnum;
 use App\Enums\RoleEnum;
@@ -12,9 +13,11 @@ use App\Models\AuditLog;
 use App\Models\InviteLink;
 use App\Models\TeamMember;
 use App\Models\User;
+use App\Models\UserRestriction;
 use App\Rules\CollegeEmail;
 use App\Rules\WhatsappNumber;
 use App\Support\CurrentTerm;
+use App\Support\Rbac\AccessControl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -408,7 +411,7 @@ class UserController extends Controller
             throw ValidationException::withMessages(['term_id' => 'لا يوجد سنة دراسية محدّدة.']);
         }
 
-        $result = DB::transaction(function () use ($data, $termId, $specIds, $deptIds) {
+        $result = DB::transaction(function () use ($data, $termId, $specIds, $deptIds, $actor) {
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -430,6 +433,17 @@ class UserController extends Controller
             }
             if ($deptIds) {
                 $user->departments()->sync($deptIds);
+            }
+
+            // الصلاحية الافتراضية للمشرف عند الإنشاء = مشاهدة فقط على كل الوحدات القابلة للتقييد،
+            // والسوبر أدمن (أو اللجنة لاحقًا) يرفع الصلاحية من إدارة القيود.
+            if ($user->role === RoleEnum::Supervisor) {
+                foreach (AccessControl::MODULES as $module) {
+                    UserRestriction::updateOrCreate(
+                        ['user_id' => $user->id, 'module' => $module],
+                        ['level' => AccessLevelEnum::ViewOnly, 'reason' => 'صلاحية افتراضية عند إنشاء الحساب — مشاهدة فقط', 'restricted_by' => $actor->id],
+                    );
+                }
             }
 
             $invite = InviteLink::create([
