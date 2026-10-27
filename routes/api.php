@@ -240,6 +240,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
             Route::post('/discussions/import/confirm', [DiscussionImportController::class, 'confirm']);
             Route::apiResource('discussions', DiscussionController::class)->except(['create', 'edit']);
 
+            Route::get('/examiners/pool', [ExaminerController::class, 'pool']);
             Route::apiResource('examiners', ExaminerController::class)->only(['index', 'store', 'destroy']);
         });
     });
