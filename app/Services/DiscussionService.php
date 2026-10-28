@@ -26,10 +26,13 @@ class DiscussionService
 
         $project = Project::with('team')->findOrFail($data['project_id']);
 
+        $duration = isset($data['duration']) && (int) $data['duration'] > 0 ? (int) $data['duration'] : 30;
+
         $this->assertNoConflict([
             'place' => $data['place'],
             'discussion_date' => $data['discussion_date'],
             'discussion_time' => $data['discussion_time'],
+            'duration' => $duration,
             'committee' => $data['committee'],
             'supervisor_id' => $data['supervisor_id'],
         ], $project->id);
@@ -40,6 +43,7 @@ class DiscussionService
             'place' => $data['place'],
             'discussion_date' => $data['discussion_date'],
             'discussion_time' => $data['discussion_time'],
+            'duration' => $duration,
             'committee' => $data['committee'],
             'whatsapp' => $data['whatsapp'] ?? null,
             'status' => $data['status'] ?? 'pending',
@@ -57,6 +61,7 @@ class DiscussionService
             'place' => $data['place'] ?? $discussion->place,
             'discussion_date' => $data['discussion_date'] ?? ($discussion->discussion_date?->format('Y-m-d')),
             'discussion_time' => $data['discussion_time'] ?? $discussion->discussion_time,
+            'duration' => isset($data['duration']) && (int) $data['duration'] > 0 ? (int) $data['duration'] : $discussion->duration,
             'committee' => $data['committee'] ?? $discussion->committee,
             'supervisor_id' => $discussion->supervisor_id,
         ];

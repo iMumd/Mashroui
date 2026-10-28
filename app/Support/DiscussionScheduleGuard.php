@@ -39,24 +39,41 @@ class DiscussionScheduleGuard
         return trim((string) preg_replace('/\s+/u', ' ', $name));
     }
 
-    /** يوحّد الوقت إلى HH:MM (قاعدة البيانات تخزّنه HH:MM:SS) */
-    private static function foldTime(string $time): string
+    /** المدة الافتراضية بالدقائق عندما لا تُخزَّن مدة صريحة */
+    private const DEFAULT_DURATION = 30;
+
+    /** يحوّل الوقت (HH:MM أو HH:MM:SS) إلى عدد دقائق منذ منتصف الليل */
+    private static function toMinutes(?string $time): int
     {
-        return substr(trim($time), 0, 5);
+        $parts = explode(':', substr(trim((string) $time), 0, 5));
+        $h = (int) ($parts[0] ?? 0);
+        $m = (int) ($parts[1] ?? 0);
+
+        return $h * 60 + $m;
+    }
+
+    /** يطبّع المدة بالدقائق إلى قيمة موجبة، ويرجع الافتراضي عند غيابها */
+    private static function duration($value): int
+    {
+        $minutes = (int) $value;
+
+        return $minutes > 0 ? $minutes : self::DEFAULT_DURATION;
     }
 
     /**
-     * أخطاء التعارض لفترة مناقشة مقترحة مقابل فترات أخرى.
+     * أخطاء التعارض لفترة مناقشة مقترحة مقابل فترات أخرى — بفحص تداخل الفترات
+     * (البداية + المدة) لا بالتطابق التام للوقت، لنفس القاعة ولنفس المناقش.
      *
-     * @param  array{place:string,discussion_date:string,discussion_time:string,committee:?string,supervisor_id:?int}  $slot
-     * @param  iterable<array{place:string,discussion_date:string,discussion_time:string,committee:?string}>  $others
+     * @param  array{place:string,discussion_date:string,discussion_time:string,duration?:int,committee:?string,supervisor_id:?int}  $slot
+     * @param  iterable<array{place:string,discussion_date:string,discussion_time:string,duration?:int,committee:?string}>  $others
      * @return array<int,string>
      */
     public function errors(array $slot, iterable $others): array
     {
         $errors = [];
         $date = $slot['discussion_date'];
-        $time = self::foldTime($slot['discussion_time']);
+        $start = self::toMinutes($slot['discussion_time']);
+        $end = $start + self::duration($slot['duration'] ?? null);
         $place = trim((string) ($slot['place'] ?? ''));
         $examiners = self::examiners($slot['committee'] ?? '');
 
@@ -68,16 +85,24 @@ class DiscussionScheduleGuard
         }
 
         foreach ($others as $other) {
-            if (($other['discussion_date'] ?? null) !== $date || self::foldTime($other['discussion_time'] ?? '') !== $time) {
+            if (($other['discussion_date'] ?? null) !== $date) {
+                continue;
+            }
+
+            $otherStart = self::toMinutes($other['discussion_time'] ?? '');
+            $otherEnd = $otherStart + self::duration($other['duration'] ?? null);
+
+            // تداخل فترتين: البداية قبل نهاية الأخرى والعكس (التلامس عند الحدّ ليس تداخلًا)
+            if ($start >= $otherEnd || $otherStart >= $end) {
                 continue;
             }
 
             if ($place !== '' && trim((string) ($other['place'] ?? '')) === $place) {
-                $errors[] = "القاعة \"{$place}\" محجوزة بنفس التاريخ والوقت.";
+                $errors[] = "القاعة \"{$place}\" محجوزة بموعد متداخل بنفس التاريخ.";
             }
 
             foreach (array_intersect_key($examiners, self::examiners($other['committee'] ?? '')) as $display) {
-                $errors[] = "المناقش \"{$display}\" عنده مناقشة أخرى بنفس التاريخ والوقت.";
+                $errors[] = "المناقش \"{$display}\" عنده مناقشة متداخلة بنفس التاريخ.";
             }
         }
 
@@ -90,11 +115,12 @@ class DiscussionScheduleGuard
         return Discussion::query()
             ->where('discussion_date', $date)
             ->when($exceptProjectId, fn ($q) => $q->where('project_id', '!=', $exceptProjectId))
-            ->get(['project_id', 'place', 'discussion_date', 'discussion_time', 'committee'])
+            ->get(['project_id', 'place', 'discussion_date', 'discussion_time', 'duration', 'committee'])
             ->map(fn (Discussion $d) => [
                 'place' => $d->place,
                 'discussion_date' => $d->discussion_date instanceof \DateTimeInterface ? $d->discussion_date->format('Y-m-d') : (string) $d->discussion_date,
                 'discussion_time' => $d->discussion_time,
+                'duration' => $d->duration,
                 'committee' => $d->committee,
             ])
             ->all();

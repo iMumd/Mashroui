@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'place',
     'discussion_date',
     'discussion_time',
+    'duration',
     'committee',
     'whatsapp',
     'status',
@@ -30,6 +31,7 @@ class Discussion extends Model
     {
         return [
             'discussion_date' => 'date',
+            'duration' => 'integer',
             'status' => DiscussionStatusEnum::class,
         ];
     }

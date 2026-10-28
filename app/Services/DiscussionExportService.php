@@ -15,7 +15,7 @@ class DiscussionExportService
         $sheet = $spreadsheet->getActiveSheet();
 
         $sheet->fromArray([
-            'الفريق', 'القسم', 'التخصص', 'المشرف', 'المكان', 'التاريخ', 'الوقت', 'اللجنة', 'الحالة',
+            'الفريق', 'القسم', 'التخصص', 'المشرف', 'المكان', 'التاريخ', 'الوقت', 'المدة (دقيقة)', 'اللجنة', 'الحالة',
         ], null, 'A1');
 
         $row = 2;
@@ -29,6 +29,7 @@ class DiscussionExportService
                 $discussion->place,
                 $discussion->discussion_date->toDateString(),
                 $discussion->discussion_time,
+                $discussion->duration,
                 $discussion->committee,
                 $discussion->status->value,
             ], null, "A{$row}");

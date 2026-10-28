@@ -35,6 +35,7 @@ class DiscussionImportService
         'place' => ['المكان'],
         'discussion_date' => ['التاريخ'],
         'discussion_time' => ['الوقت'],
+        'duration' => ['المدة', 'المدة (دقيقة)', 'مدة المناقشة'],
         'committee' => ['لجنة المناقشة', 'اللجنة'],
         'whatsapp' => ['الواتس', 'الواتساب', 'رقم الواتساب'],
     ];
@@ -84,6 +85,7 @@ class DiscussionImportService
                 'place' => $place,
                 'discussion_date' => $date,
                 'discussion_time' => $time,
+                'duration' => $value('duration'),
                 'committee' => $committee,
                 'whatsapp' => $value('whatsapp'),
             ];
@@ -193,6 +195,10 @@ class DiscussionImportService
                 $errors[] = 'وقت المناقشة يجب أن يكون بصيغة HH:MM.';
             }
 
+            if (($row['duration'] ?? '') !== '' && ! preg_match('/^\d{1,3}$/', (string) $row['duration'])) {
+                $errors[] = 'مدة المناقشة يجب أن تكون عدد دقائق صحيحًا (اتركه فارغًا للافتراضي 30).';
+            }
+
             if ($row['committee'] === '') {
                 $errors[] = 'لجنة المناقشة مطلوبة.';
             }
@@ -243,6 +249,7 @@ class DiscussionImportService
                 'place' => $row['place'],
                 'discussion_date' => $row['discussion_date'],
                 'discussion_time' => $row['discussion_time'],
+                'duration' => ($row['duration'] ?? '') !== '' ? (int) $row['duration'] : 30,
                 'committee' => $row['committee'],
                 'supervisor_id' => $row['supervisor_id'],
             ];
@@ -252,11 +259,12 @@ class DiscussionImportService
                 Discussion::query()
                     ->where('discussion_date', $row['discussion_date'])
                     ->whereNotIn('project_id', $batchProjectIds)
-                    ->get(['place', 'discussion_date', 'discussion_time', 'committee'])
+                    ->get(['place', 'discussion_date', 'discussion_time', 'duration', 'committee'])
                     ->map(fn (Discussion $d) => [
                         'place' => $d->place,
                         'discussion_date' => $d->discussion_date instanceof \DateTimeInterface ? $d->discussion_date->format('Y-m-d') : (string) $d->discussion_date,
                         'discussion_time' => $d->discussion_time,
+                        'duration' => $d->duration,
                         'committee' => $d->committee,
                     ])->all()
             ));
@@ -294,6 +302,7 @@ class DiscussionImportService
                         'place' => $row['place'],
                         'discussion_date' => $row['discussion_date'],
                         'discussion_time' => $row['discussion_time'],
+                        'duration' => ($row['duration'] ?? '') !== '' ? (int) $row['duration'] : 30,
                         'committee' => $row['committee'],
                         'whatsapp' => ($row['whatsapp'] ?? '') !== '' ? $row['whatsapp'] : null,
                         'status' => 'pending',
@@ -326,7 +335,7 @@ class DiscussionImportService
         $sheet = $spreadsheet->getActiveSheet();
 
         $sheet->fromArray([
-            'رقم المجموعة', 'اسم الفريق', 'اسم المشروع', 'المكان', 'التاريخ', 'الوقت', 'لجنة المناقشة', 'واتساب',
+            'رقم المجموعة', 'اسم الفريق', 'اسم المشروع', 'المكان', 'التاريخ', 'الوقت', 'المدة (دقيقة)', 'لجنة المناقشة', 'واتساب',
         ], null, 'A1');
 
         $row = 2;
@@ -336,7 +345,7 @@ class DiscussionImportService
                 $team->id,
                 $team->name,
                 $team->project->name ?? '',
-                '', '', '', '', '',
+                '', '', '', 30, '', '',
             ], null, "A{$row}");
 
             $row++;
