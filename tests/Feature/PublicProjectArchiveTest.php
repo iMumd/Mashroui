@@ -86,4 +86,27 @@ class PublicProjectArchiveTest extends TestCase
         // المشروع المكتمل غير المميّز غير متاح في العرض العام
         $this->getJson("/api/projects/public-archive/{$plain}")->assertNotFound();
     }
+
+    public function test_front_gallery_lists_only_top_ranked_projects(): void
+    {
+        // متصّدر: رشّحه أغلب المناقشين
+        [$top, $topTeam] = $this->makeCompletedProject(featured: true);
+        $this->addExaminerSubmission($topTeam, nominate: true);
+
+        // مميّز فقط: مميّز لكن لم يرشّحه المناقشون
+        [$base, $baseTeam] = $this->makeCompletedProject(featured: true);
+        $this->addExaminerSubmission($baseTeam, nominate: false);
+        $this->addExaminerSubmission($baseTeam, nominate: false);
+
+        // معرض الواجهة: المتصدّر فقط
+        $this->getJson('/api/projects/featured')
+            ->assertOk()
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('data.0.id', $top);
+
+        // الأرشيف: كل المميّزة (المتصدّر + المميّز)
+        $this->getJson('/api/projects/public-archive')
+            ->assertOk()
+            ->assertJsonPath('total', 2);
+    }
 }

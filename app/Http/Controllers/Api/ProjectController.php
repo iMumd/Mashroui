@@ -43,12 +43,13 @@ class ProjectController extends Controller
         return response()->json($item);
     }
 
-    // GET /projects/featured — عام، مشاريع الواجهة الرئيسية
+    // GET /projects/featured — عام، معرض واجهة الموقع: المشاريع المتصدّرة فقط (مميّزة + رشّحها أغلب المناقشين)
     public function featured()
     {
         $projects = Project::withoutGlobalScope(TermScope::class)
             ->with($this->publicRelations())
             ->where('is_featured', true)
+            ->whereIn('team_id', $this->topRankedTeamIds())
             ->orderByDesc('id')
             ->paginate(6);
 
@@ -100,6 +101,19 @@ class ProjectController extends Controller
     private function publicRelations(): array
     {
         return ['department:id,name', 'specialization:id,name,degree', 'supervisor:id,name', 'team:id,name', 'team.members.student:id,name', 'academicTerm:id,name', 'finalReports:id,project_id,video_url,created_at'];
+    }
+
+    /**
+     * مجموعات المشاريع المتصدّرة لمعرض الواجهة: رشّحها أغلب المناقشين في نموذج المناقشين
+     * (nominations >= 1 و nominations*2 >= discussants) — نفس عتبة الرتبة «متصّدر» في الواجهة (computeRank).
+     */
+    private function topRankedTeamIds(): \Illuminate\Support\Collection
+    {
+        return EvaluationSubmission::whereHas('form', fn ($q) => $q->where('kind', 'examiner'))
+            ->selectRaw('team_id')
+            ->groupBy('team_id')
+            ->havingRaw('COALESCE(SUM(nominate), 0) >= 1 AND COALESCE(SUM(nominate), 0) * 2 >= COUNT(*)')
+            ->pluck('team_id');
     }
 
     /** إحصاء ترشيحات المناقشين لكل مجموعة: كم مناقشًا رشّح المشروع (nominate) من إجمالي من قيّموه بنموذج المناقشين */
