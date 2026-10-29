@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\ProjectStatusEnum;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
+use App\Models\EvaluationSubmission;
 use App\Models\Project;
 use App\Models\Scopes\TermScope;
 use App\Services\ProjectService;
@@ -51,7 +52,8 @@ class ProjectController extends Controller
             ->orderByDesc('id')
             ->paginate(6);
 
-        $projects->getCollection()->transform(fn (Project $project) => $this->publicProject($project));
+        $stats = $this->nominationStats($projects->getCollection()->pluck('team_id')->all());
+        $projects->getCollection()->transform(fn (Project $project) => $this->publicProject($project, $stats));
 
         return response()->json($projects);
     }
@@ -75,7 +77,8 @@ class ProjectController extends Controller
             ->paginate(6)
             ->withQueryString();
 
-        $projects->getCollection()->transform(fn (Project $project) => $this->publicProject($project));
+        $stats = $this->nominationStats($projects->getCollection()->pluck('team_id')->all());
+        $projects->getCollection()->transform(fn (Project $project) => $this->publicProject($project, $stats));
 
         return response()->json($projects);
     }
@@ -88,7 +91,7 @@ class ProjectController extends Controller
             ->where('status', ProjectStatusEnum::Completed)
             ->findOrFail($project);
 
-        return response()->json($this->publicProject($item));
+        return response()->json($this->publicProject($item, $this->nominationStats([$item->team_id])));
     }
 
     /** العلاقات اللازمة لعرض عام آمن — بدون بيانات تواصل شخصية (إيميل/رقم جامعي) */
@@ -97,8 +100,28 @@ class ProjectController extends Controller
         return ['department:id,name', 'specialization:id,name,degree', 'supervisor:id,name', 'team:id,name', 'team.members.student:id,name', 'academicTerm:id,name', 'finalReports:id,project_id,video_url,created_at'];
     }
 
-    private function publicProject(Project $project): array
+    /** إحصاء ترشيحات المناقشين لكل مجموعة: كم مناقشًا رشّح المشروع (nominate) من إجمالي من قيّموه بنموذج المناقشين */
+    private function nominationStats(array $teamIds): array
     {
+        $teamIds = array_values(array_filter($teamIds));
+        if (! $teamIds) {
+            return [];
+        }
+
+        return EvaluationSubmission::whereIn('team_id', $teamIds)
+            ->whereHas('form', fn ($q) => $q->where('kind', 'examiner'))
+            ->selectRaw('team_id, COUNT(*) as discussants, COALESCE(SUM(nominate), 0) as nominations')
+            ->groupBy('team_id')
+            ->get()
+            ->keyBy('team_id')
+            ->map(fn ($r) => ['discussants' => (int) $r->discussants, 'nominations' => (int) $r->nominations])
+            ->all();
+    }
+
+    private function publicProject(Project $project, array $stats = []): array
+    {
+        $star = $stats[$project->team_id] ?? ['discussants' => 0, 'nominations' => 0];
+
         return [
             'id' => $project->id,
             'name' => $project->name,
@@ -115,6 +138,8 @@ class ProjectController extends Controller
             'term' => $project->academicTerm?->name,
             'completed_at' => $project->completed_at?->toDateString(),
             'video_url' => $project->finalReports->whereNotNull('video_url')->sortByDesc('created_at')->first()?->video_url,
+            'featured' => (bool) $project->is_featured,
+            'stars' => ['nominations' => $star['nominations'], 'discussants' => $star['discussants']],
         ];
     }
 
