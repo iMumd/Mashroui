@@ -72,4 +72,18 @@ class PublicProjectArchiveTest extends TestCase
             ->assertJsonPath('stars.nominations', 0)
             ->assertJsonPath('stars.discussants', 0);
     }
+
+    public function test_public_archive_lists_only_featured_projects(): void
+    {
+        [$featured] = $this->makeCompletedProject(featured: true);
+        [$plain] = $this->makeCompletedProject(featured: false);
+
+        $this->getJson('/api/projects/public-archive')
+            ->assertOk()
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('data.0.id', $featured);
+
+        // المشروع المكتمل غير المميّز غير متاح في العرض العام
+        $this->getJson("/api/projects/public-archive/{$plain}")->assertNotFound();
+    }
 }

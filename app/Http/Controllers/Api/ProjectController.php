@@ -58,7 +58,7 @@ class ProjectController extends Controller
         return response()->json($projects);
     }
 
-    // GET /projects/public-archive — عام، أرشيف المشاريع المكتملة بفلترة وترقيم صفحات حقيقيين
+    // GET /projects/public-archive — عام، أرشيف المشاريع المميّزة المكتملة (التي ميّزتها اللجنة/الإدارة) بفلترة وترقيم صفحات
     public function publicArchive(Request $request)
     {
         $data = $request->validate([
@@ -70,6 +70,7 @@ class ProjectController extends Controller
         $projects = Project::withoutGlobalScope(TermScope::class)
             ->with($this->publicRelations())
             ->where('status', ProjectStatusEnum::Completed)
+            ->where('is_featured', true)
             ->when($data['search'] ?? null, fn ($q, $search) => $q->where('name', 'like', "%{$search}%"))
             ->when($data['department_id'] ?? null, fn ($q, $id) => $q->where('department_id', $id))
             ->when($data['degree'] ?? null, fn ($q, $degree) => $q->whereHas('specialization', fn ($sq) => $sq->where('degree', $degree)))
@@ -83,12 +84,13 @@ class ProjectController extends Controller
         return response()->json($projects);
     }
 
-    // GET /projects/public-archive/{project} — عام، تفاصيل مشروع مكتمل واحد
+    // GET /projects/public-archive/{project} — عام، تفاصيل مشروع مميّز مكتمل واحد (غير المميّزة غير متاحة للعرض العام)
     public function publicArchiveShow(int $project)
     {
         $item = Project::withoutGlobalScope(TermScope::class)
             ->with($this->publicRelations())
             ->where('status', ProjectStatusEnum::Completed)
+            ->where('is_featured', true)
             ->findOrFail($project);
 
         return response()->json($this->publicProject($item, $this->nominationStats([$item->team_id])));
