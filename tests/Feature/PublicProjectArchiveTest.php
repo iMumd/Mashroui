@@ -9,7 +9,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-/** المشاريع العامة: نجوم ترشيح المناقشين (nominate) تظهر في المخرجات العامة */
+/**
+ * المشاريع العامة والطاقم:
+ * - العرض العام لا يكشف تفاصيل التقييم (نجوم المناقشين).
+ * - معرض الواجهة يعرض كل المشاريع المميّزة من الإدارة (is_featured) بغضّ النظر عن الترشيح.
+ * - نجوم ترشيح المناقشين تظهر للطاقم فقط عبر /progress.
+ */
 class PublicProjectArchiveTest extends TestCase
 {
     use RefreshDatabase;
@@ -44,33 +49,22 @@ class PublicProjectArchiveTest extends TestCase
         ]);
     }
 
-    public function test_public_project_payload_exposes_discussant_nomination_stars(): void
+    public function test_public_project_payload_hides_rating_details(): void
     {
         [$project, $team] = $this->makeCompletedProject();
         $this->addExaminerSubmission($team, nominate: true);
-        $this->addExaminerSubmission($team, nominate: false);
 
+        // معرض الواجهة: المشروع ظاهر لكن بلا تفاصيل تقييم (نجوم/حالة تمييز)
         $this->getJson('/api/projects/featured')
             ->assertOk()
             ->assertJsonPath('data.0.id', $project)
-            ->assertJsonPath('data.0.featured', true)
-            ->assertJsonPath('data.0.stars.nominations', 1)
-            ->assertJsonPath('data.0.stars.discussants', 2);
+            ->assertJsonMissingPath('data.0.stars')
+            ->assertJsonMissingPath('data.0.featured');
 
         $this->getJson("/api/projects/public-archive/{$project}")
             ->assertOk()
-            ->assertJsonPath('stars.nominations', 1)
-            ->assertJsonPath('stars.discussants', 2);
-    }
-
-    public function test_project_without_nominations_reports_zero_stars(): void
-    {
-        [$project] = $this->makeCompletedProject();
-
-        $this->getJson("/api/projects/public-archive/{$project}")
-            ->assertOk()
-            ->assertJsonPath('stars.nominations', 0)
-            ->assertJsonPath('stars.discussants', 0);
+            ->assertJsonMissingPath('stars')
+            ->assertJsonMissingPath('featured');
     }
 
     public function test_public_archive_lists_only_featured_projects(): void
@@ -87,26 +81,40 @@ class PublicProjectArchiveTest extends TestCase
         $this->getJson("/api/projects/public-archive/{$plain}")->assertNotFound();
     }
 
-    public function test_front_gallery_lists_only_top_ranked_projects(): void
+    public function test_front_gallery_lists_all_featured_projects(): void
     {
-        // متصّدر: رشّحه أغلب المناقشين
-        [$top, $topTeam] = $this->makeCompletedProject(featured: true);
-        $this->addExaminerSubmission($topTeam, nominate: true);
+        // مميّز ورشّحه مناقش
+        [$nominated, $nominatedTeam] = $this->makeCompletedProject(featured: true);
+        $this->addExaminerSubmission($nominatedTeam, nominate: true);
 
-        // مميّز فقط: مميّز لكن لم يرشّحه المناقشون
-        [$base, $baseTeam] = $this->makeCompletedProject(featured: true);
-        $this->addExaminerSubmission($baseTeam, nominate: false);
-        $this->addExaminerSubmission($baseTeam, nominate: false);
+        // مميّز بلا ترشيح من المناقشين — يظهر في المعرض كذلك
+        [$plainFeatured, $plainTeam] = $this->makeCompletedProject(featured: true);
+        $this->addExaminerSubmission($plainTeam, nominate: false);
 
-        // معرض الواجهة: المتصدّر فقط
+        // غير مميّز — لا يظهر في المعرض
+        $this->makeCompletedProject(featured: false);
+
         $this->getJson('/api/projects/featured')
             ->assertOk()
-            ->assertJsonPath('total', 1)
-            ->assertJsonPath('data.0.id', $top);
-
-        // الأرشيف: كل المميّزة (المتصدّر + المميّز)
-        $this->getJson('/api/projects/public-archive')
-            ->assertOk()
             ->assertJsonPath('total', 2);
+
+        $ids = collect($this->getJson('/api/projects/featured')->json('data'))->pluck('id');
+        $this->assertTrue($ids->contains($nominated));
+        $this->assertTrue($ids->contains($plainFeatured));
+    }
+
+    public function test_staff_progress_exposes_discussant_nomination_stars(): void
+    {
+        [, $team] = $this->makeCompletedProject();
+        $this->addExaminerSubmission($team, nominate: true);
+        $this->addExaminerSubmission($team, nominate: false);
+
+        $committee = User::factory()->create(['role' => RoleEnum::Committee]);
+
+        $this->actingAs($committee)
+            ->getJson('/api/progress')
+            ->assertOk()
+            ->assertJsonPath('0.team.project.nomination_stars.nominations', 1)
+            ->assertJsonPath('0.team.project.nomination_stars.discussants', 2);
     }
 }
