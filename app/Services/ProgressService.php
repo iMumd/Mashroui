@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\RoleEnum;
 use App\Enums\TaskStatusEnum;
 use App\Models\Evaluation;
+use App\Models\EvaluationSubmission;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -60,9 +61,19 @@ class ProgressService
             $query->where('supervisor_id', $user->id);
         }
 
-        return $query->get()->map(fn (Team $team) => [
-            'team' => $team,
-            'progress' => $this->forTeam($team),
-        ]);
+        $teams = $query->get();
+        // نجوم ترشيح المناقشين لكل مشروع — يراها الطاقم (لجنة/إشراف/إدارة) في أرشيف المشاريع فقط
+        $stars = EvaluationSubmission::nominationStatsFor($teams->pluck('id')->all());
+
+        return $teams->map(function (Team $team) use ($stars) {
+            if ($team->project) {
+                $team->project->setAttribute('nomination_stars', $stars[$team->id] ?? ['discussants' => 0, 'nominations' => 0]);
+            }
+
+            return [
+                'team' => $team,
+                'progress' => $this->forTeam($team),
+            ];
+        });
     }
 }
