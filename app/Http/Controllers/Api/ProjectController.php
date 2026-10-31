@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Enums\ProjectStatusEnum;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
-use App\Models\EvaluationSubmission;
 use App\Models\Project;
 use App\Models\Scopes\TermScope;
 use App\Services\ProjectService;
@@ -43,18 +42,16 @@ class ProjectController extends Controller
         return response()->json($item);
     }
 
-    // GET /projects/featured — عام، معرض واجهة الموقع: المشاريع المتصدّرة فقط (مميّزة + رشّحها أغلب المناقشين)
+    // GET /projects/featured — عام، معرض واجهة الموقع: المشاريع التي ميّزتها الإدارة/اللجنة (is_featured)
     public function featured()
     {
         $projects = Project::withoutGlobalScope(TermScope::class)
             ->with($this->publicRelations())
             ->where('is_featured', true)
-            ->whereIn('team_id', $this->topRankedTeamIds())
             ->orderByDesc('id')
             ->paginate(6);
 
-        $stats = $this->nominationStats($projects->getCollection()->pluck('team_id')->all());
-        $projects->getCollection()->transform(fn (Project $project) => $this->publicProject($project, $stats));
+        $projects->getCollection()->transform(fn (Project $project) => $this->publicProject($project));
 
         return response()->json($projects);
     }
@@ -79,8 +76,7 @@ class ProjectController extends Controller
             ->paginate(6)
             ->withQueryString();
 
-        $stats = $this->nominationStats($projects->getCollection()->pluck('team_id')->all());
-        $projects->getCollection()->transform(fn (Project $project) => $this->publicProject($project, $stats));
+        $projects->getCollection()->transform(fn (Project $project) => $this->publicProject($project));
 
         return response()->json($projects);
     }
@@ -94,7 +90,7 @@ class ProjectController extends Controller
             ->where('is_featured', true)
             ->findOrFail($project);
 
-        return response()->json($this->publicProject($item, $this->nominationStats([$item->team_id])));
+        return response()->json($this->publicProject($item));
     }
 
     /** العلاقات اللازمة لعرض عام آمن — بدون بيانات تواصل شخصية (إيميل/رقم جامعي) */
@@ -103,41 +99,8 @@ class ProjectController extends Controller
         return ['department:id,name', 'specialization:id,name,degree', 'supervisor:id,name', 'team:id,name', 'team.members.student:id,name', 'academicTerm:id,name', 'finalReports:id,project_id,video_url,created_at'];
     }
 
-    /**
-     * مجموعات المشاريع المتصدّرة لمعرض الواجهة: رشّحها أغلب المناقشين في نموذج المناقشين
-     * (nominations >= 1 و nominations*2 >= discussants) — نفس عتبة الرتبة «متصّدر» في الواجهة (computeRank).
-     */
-    private function topRankedTeamIds(): \Illuminate\Support\Collection
+    private function publicProject(Project $project): array
     {
-        return EvaluationSubmission::whereHas('form', fn ($q) => $q->where('kind', 'examiner'))
-            ->selectRaw('team_id')
-            ->groupBy('team_id')
-            ->havingRaw('COALESCE(SUM(nominate), 0) >= 1 AND COALESCE(SUM(nominate), 0) * 2 >= COUNT(*)')
-            ->pluck('team_id');
-    }
-
-    /** إحصاء ترشيحات المناقشين لكل مجموعة: كم مناقشًا رشّح المشروع (nominate) من إجمالي من قيّموه بنموذج المناقشين */
-    private function nominationStats(array $teamIds): array
-    {
-        $teamIds = array_values(array_filter($teamIds));
-        if (! $teamIds) {
-            return [];
-        }
-
-        return EvaluationSubmission::whereIn('team_id', $teamIds)
-            ->whereHas('form', fn ($q) => $q->where('kind', 'examiner'))
-            ->selectRaw('team_id, COUNT(*) as discussants, COALESCE(SUM(nominate), 0) as nominations')
-            ->groupBy('team_id')
-            ->get()
-            ->keyBy('team_id')
-            ->map(fn ($r) => ['discussants' => (int) $r->discussants, 'nominations' => (int) $r->nominations])
-            ->all();
-    }
-
-    private function publicProject(Project $project, array $stats = []): array
-    {
-        $star = $stats[$project->team_id] ?? ['discussants' => 0, 'nominations' => 0];
-
         return [
             'id' => $project->id,
             'name' => $project->name,
@@ -154,8 +117,6 @@ class ProjectController extends Controller
             'term' => $project->academicTerm?->name,
             'completed_at' => $project->completed_at?->toDateString(),
             'video_url' => $project->finalReports->whereNotNull('video_url')->sortByDesc('created_at')->first()?->video_url,
-            'featured' => (bool) $project->is_featured,
-            'stars' => ['nominations' => $star['nominations'], 'discussants' => $star['discussants']],
         ];
     }
 
