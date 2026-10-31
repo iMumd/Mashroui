@@ -47,7 +47,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function login(Request $request)
+    public function login(Request $request, AccessControl $accessControl)
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
@@ -71,7 +71,7 @@ class AuthController extends Controller
         $token = $user->createToken('api')->plainTextToken;
 
         return response()->json([
-            'user' => $user,
+            'user' => $this->withAbilities($user, $accessControl),
             'token' => $token,
         ]);
     }
@@ -83,19 +83,32 @@ class AuthController extends Controller
         return response()->json(['message' => 'تم تسجيل الخروج.']);
     }
 
-    public function me(Request $request)
+    public function me(Request $request, AccessControl $accessControl)
     {
-        return response()->json($request->user()->load(['specialization', 'academicTerm']));
+        $user = $request->user()->load(['specialization', 'academicTerm']);
+
+        return response()->json($this->withAbilities($user, $accessControl));
     }
 
     public function abilities(Request $request, AccessControl $accessControl)
     {
-        $user = $request->user();
+        return response()->json($this->abilitiesFor($request->user(), $accessControl));
+    }
 
-        $abilities = collect(AccessControl::MODULES)
-            ->mapWithKeys(fn (string $module) => [$module => $accessControl->can($user, $module)->value]);
+    /** صلاحيات المستخدم على الوحدات المقيَّدة (مثل المقترحات): full | view_only | blocked */
+    private function abilitiesFor(User $user, AccessControl $accessControl): array
+    {
+        return collect(AccessControl::MODULES)
+            ->mapWithKeys(fn (string $module) => [$module => $accessControl->can($user, $module)->value])
+            ->all();
+    }
 
-        return response()->json($abilities);
+    /** يُرفق صلاحيات الوحدات داخل حمولة المستخدم كي تعرفها الواجهة مباشرة (دون طلب إضافي) */
+    private function withAbilities(User $user, AccessControl $accessControl): User
+    {
+        $user->setAttribute('abilities', $this->abilitiesFor($user, $accessControl));
+
+        return $user;
     }
 
     public function changePassword(Request $request)
