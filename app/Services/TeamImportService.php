@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\ProjectStatusEnum;
 use App\Enums\RoleEnum;
 use App\Enums\UserStatusEnum;
+use App\Models\ImportBatch;
 use App\Models\InviteLink;
 use App\Models\Project;
 use App\Models\Specialization;
@@ -217,7 +218,7 @@ class TeamImportService
         return $groups;
     }
 
-    public function confirm(array $rows, int $termId): array
+    public function confirm(array $rows, int $termId, ?int $uploadedBy = null, ?string $filename = null): array
     {
         $result = $this->validate($rows);
 
@@ -226,16 +227,19 @@ class TeamImportService
         }
 
         if (! $result['team_mode']) {
-            return $this->confirmLegacy($rows, $termId);
+            return $this->confirmLegacy($rows, $termId, $uploadedBy, $filename);
         }
 
-        $created = DB::transaction(function () use ($rows, $termId) {
+        $created = DB::transaction(function () use ($rows, $termId, $uploadedBy, $filename) {
             $teams = [];
+            $reverse = ['users' => [], 'teams' => [], 'projects' => []];
 
             foreach ($this->groupIntoTeams($rows) as $group) {
                 $users = [];
                 foreach ($group as $row) {
-                    $users[] = $this->createStudent($row, $termId);
+                    $u = $this->createStudent($row, $termId);
+                    $users[] = $u;
+                    $reverse['users'][] = $u['user']->id;
                 }
 
                 $leader = $users[0];
@@ -248,6 +252,7 @@ class TeamImportService
                     'term_id' => $termId,
                     'leader_id' => $leader['user']->id,
                 ]);
+                $reverse['teams'][] = $team->id;
 
                 foreach ($users as $i => $u) {
                     TeamMember::create([
@@ -259,7 +264,7 @@ class TeamImportService
 
                 $departmentId = Specialization::whereKey($group[0]['specialization_id'])->value('department_id');
 
-                Project::create([
+                $project = Project::create([
                     'team_id' => $team->id,
                     'supervisor_id' => $group[0]['supervisor_id'],
                     'department_id' => $departmentId,
@@ -268,9 +273,14 @@ class TeamImportService
                     'status' => ProjectStatusEnum::Proposed,
                     'is_featured' => false,
                 ]);
+                $reverse['projects'][] = $project->id;
 
                 $teams[] = ['team' => $team, 'members' => $users];
             }
+
+            ImportBatch::record('teams', $termId, $uploadedBy, $filename, [
+                'teams' => count($teams), 'students' => count($reverse['users']),
+            ], $reverse);
 
             return $teams;
         });
@@ -278,19 +288,64 @@ class TeamImportService
         return ['valid' => [], 'invalid' => [], 'created' => $created, 'team_mode' => true];
     }
 
-    private function confirmLegacy(array $rows, int $termId): array
+    private function confirmLegacy(array $rows, int $termId, ?int $uploadedBy, ?string $filename): array
     {
-        $created = DB::transaction(function () use ($rows, $termId) {
+        $created = DB::transaction(function () use ($rows, $termId, $uploadedBy, $filename) {
             $users = [];
+            $reverse = ['users' => [], 'teams' => [], 'projects' => []];
 
             foreach ($rows as $row) {
-                $users[] = $this->createStudent($row, $termId);
+                $u = $this->createStudent($row, $termId);
+                $users[] = $u;
+                $reverse['users'][] = $u['user']->id;
             }
+
+            ImportBatch::record('teams', $termId, $uploadedBy, $filename, [
+                'teams' => 0, 'students' => count($reverse['users']),
+            ], $reverse);
 
             return $users;
         });
 
         return ['valid' => [], 'invalid' => [], 'created' => $created, 'team_mode' => false];
+    }
+
+    /** أحدث دفعة استيراد فرق (لعرض الحالة وإتاحة زر التراجع) */
+    public function latest(?int $termId): ?ImportBatch
+    {
+        return ImportBatch::latestFor('teams', $termId);
+    }
+
+    /** يتراجع عن آخر استيراد فرق: يحذف ما أُنشئ به (طلاب + فرق + مشاريع) نهائيًا */
+    public function revert(ImportBatch $batch): void
+    {
+        if ($batch->status !== 'applied') {
+            return;
+        }
+
+        $reverse = $batch->reverse ?? [];
+
+        DB::transaction(function () use ($batch, $reverse) {
+            $userIds = $reverse['users'] ?? [];
+            $teamIds = $reverse['teams'] ?? [];
+            $projectIds = $reverse['projects'] ?? [];
+
+            if ($projectIds) {
+                Project::whereIn('id', $projectIds)->delete();
+            }
+            if ($teamIds) {
+                TeamMember::whereIn('team_id', $teamIds)->delete();
+                Team::whereIn('id', $teamIds)->forceDelete();
+            }
+            if ($userIds) {
+                InviteLink::whereIn('user_id', $userIds)->delete();
+                User::whereIn('id', $userIds)->forceDelete();
+            }
+
+            $batch->status = 'reverted';
+            $batch->reverted_at = now();
+            $batch->save();
+        });
     }
 
     private function createStudent(array $row, int $termId): array
