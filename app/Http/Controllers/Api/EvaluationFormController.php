@@ -27,10 +27,10 @@ class EvaluationFormController extends Controller
     {
         abort_unless(in_array($request->user()->role, [...self::STAFF, RoleEnum::Supervisor], true), 403);
 
-        return response()->json(EvaluationForm::with('updatedBy:id,name')->orderBy('id')->get());
+        return response()->json(EvaluationForm::with('updatedBy:id,name', 'department:id,name')->orderBy('id')->get());
     }
 
-    // POST /evaluation-forms — نموذج جديد (مشرف أو مناقشين) لدرجة معيّنة أو لكل الدرجات (degree = null)
+    // POST /evaluation-forms — نموذج جديد (مشرف أو مناقشين) لدرجة معيّنة أو لكل الدرجات، ولقسم معيّن أو لكل الأقسام
     public function store(Request $request, EvaluationFormService $service)
     {
         abort_unless(in_array($request->user()->role, self::STAFF, true), 403);
@@ -38,13 +38,14 @@ class EvaluationFormController extends Controller
         $data = $request->validate([
             'kind' => ['required', Rule::in(['supervisor', 'examiner'])],
             'degree' => ['nullable', Rule::in(['diploma', 'bachelor'])],
+            'department_id' => ['nullable', 'exists:departments,id'],
             ...$this->rules(),
         ]);
 
         $form = EvaluationForm::create([...$data, 'key' => 'custom_'.Str::lower(Str::random(12)), 'updated_by' => $request->user()->id]);
         $service->recomputeAll();
 
-        return response()->json($form->fresh('updatedBy:id,name'), 201);
+        return response()->json($form->fresh(['updatedBy:id,name', 'department:id,name']), 201);
     }
 
     // DELETE /evaluation-forms/{form} — فقط إن لم يُعبّأ بعد، حتى لا تضيع تقييمات محفوظة
@@ -70,7 +71,7 @@ class EvaluationFormController extends Controller
         $form->update([...$data, 'updated_by' => $request->user()->id]);
         $service->recomputeForForm($form);
 
-        return response()->json($form->fresh('updatedBy:id,name'));
+        return response()->json($form->fresh(['updatedBy:id,name', 'department:id,name']));
     }
 
     private function rules(): array
@@ -105,7 +106,7 @@ class EvaluationFormController extends Controller
         // المشرف: نموذج المشرف لمجموعاته، ونماذج المناقشين لمجموعاته (اطلاع) وللمجموعات التي يناقشها (تعبئة)
         abort_unless($isStaff || $own || $examines, 403);
 
-        $team->load('specialization:id,name,degree', 'supervisor:id,name,email,whatsapp,employee_number', 'project:id,team_id,name,is_featured', 'members.student:id,name,university_number');
+        $team->load('specialization:id,name,degree,department_id', 'supervisor:id,name,email,whatsapp,employee_number', 'project:id,team_id,name,is_featured', 'members.student:id,name,university_number');
         $forms = $service->formsFor($team)->when(! $isStaff, fn ($f) => $f->filter(fn ($form) => $own || $form->kind === 'examiner')->values());
         $examinerForms = $forms->where('kind', 'examiner')->pluck('id');
 
@@ -138,12 +139,12 @@ class EvaluationFormController extends Controller
             'results' => $isStaff || $own ? $results : $results->map(fn ($r) => ['student_id' => $r->student_id, 'committee_score' => $r->committee_score]),
             // النماذج التي يعبّئها المستخدم؛ الباقي للعرض فقط
             // الإدارة العامة: نموذج المناقشين فقط إن كانت ضمن لجنة مناقشة المجموعة (وإلا يُخفى)؛ نموذج المشرف يبقى متاحًا للتصحيح
-            // لجنة الإشراف: كل النماذج (دون تقييد)
+            // لجنة الإشراف: نموذجها هي (المناقشين) فقط — لا تعبّئ نموذج المشرف
             // المشرف: نموذج المشرف لمجموعته + نموذج المناقشين للمجموعات التي يناقشها
             'editable' => $isStaff
                 ? ($isSuperAdmin
                     ? $forms->filter(fn ($f) => $f->kind !== 'examiner' || $inCommittee)->pluck('id')->values()
-                    : $forms->pluck('id'))
+                    : $forms->where('kind', 'examiner')->pluck('id')->values())
                 : $forms->filter(fn ($f) => ($f->kind === 'supervisor' && $own) || ($f->kind === 'examiner' && $examines))->pluck('id')->values(),
         ]);
     }
@@ -175,10 +176,10 @@ class EvaluationFormController extends Controller
         $isStaff = in_array($user->role, self::STAFF, true);
         $isSuperAdmin = $user->role === RoleEnum::SuperAdmin;
         $inCommittee = $service->examinedTeamIds($user)->contains($team->id);
-        // نموذج المشرف: مشرف المجموعة أو الإدارة/اللجنة
+        // نموذج المشرف: مشرف المجموعة أو الإدارة العامة (للتصحيح) — لجنة الإشراف لا تعبّئ نموذج المشرف
         // نموذج المناقشين: لجنة الإشراف دائمًا؛ الإدارة العامة فقط إن كانت ضمن لجنة مناقشة المجموعة؛ أو المشرف المناقِش لها
         $canSubmit = $form->kind === 'supervisor'
-            ? ($isStaff || $user->id === $team->supervisor_id)
+            ? ($isSuperAdmin || $user->id === $team->supervisor_id)
             : (($isStaff && ! $isSuperAdmin) || $inCommittee);
         abort_unless($canSubmit, 403);
         abort_unless($service->formsFor($team->loadMissing('specialization'))->contains('id', $form->id), 422, 'هذا النموذج لا يخص درجة هذه المجموعة.');

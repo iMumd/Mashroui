@@ -124,4 +124,58 @@ class EvaluationFormTest extends TestCase
         $this->assertSame([$forms['supervisor']->id], $own['editable']);
         $this->assertContains('examiner_bachelor', array_column($own['forms'], 'key'));
     }
+
+    public function test_supervision_committee_cannot_fill_the_supervisor_form(): void
+    {
+        $committee = User::factory()->create(['role' => RoleEnum::Committee]);
+        $sup = User::factory()->create(['role' => RoleEnum::Supervisor]);
+
+        $term = DB::table('academic_terms')->insertGetId(['name' => 'T1', 'is_current' => true]);
+        $dept = DB::table('departments')->insertGetId(['name' => 'D']);
+        $spec = DB::table('specializations')->insertGetId(['department_id' => $dept, 'name' => 'S', 'degree' => 'bachelor']);
+        $team = DB::table('teams')->insertGetId(['name' => 'A', 'supervisor_id' => $sup->id, 'specialization_id' => $spec, 'term_id' => $term]);
+        DB::table('team_members')->insert(['team_id' => $team, 'student_id' => User::factory()->create()->id]);
+
+        $supervisorForm = EvaluationForm::where('kind', 'supervisor')->first();
+
+        // لجنة الإشراف لا تُدرِج نموذج المشرف ضمن النماذج القابلة للتعبئة، ولا يمكنها تعبئته
+        $sheet = $this->actingAs($committee)->getJson("/api/teams/{$team}/evaluation")->assertOk()->json();
+        $this->assertNotContains($supervisorForm->id, $sheet['editable']);
+        $this->actingAs($committee)->putJson("/api/teams/{$team}/evaluation/{$supervisorForm->id}", ['answers' => []])->assertForbidden();
+
+        // مشرف المجموعة نفسه يعبّئه بشكل طبيعي
+        $this->actingAs($sup)->putJson("/api/teams/{$team}/evaluation/{$supervisorForm->id}", ['answers' => []])->assertOk();
+    }
+
+    public function test_department_specific_form_overrides_the_default_for_that_department(): void
+    {
+        $admin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
+        $sup = User::factory()->create(['role' => RoleEnum::Supervisor]);
+
+        $term = DB::table('academic_terms')->insertGetId(['name' => 'T1', 'is_current' => true]);
+        $multimedia = DB::table('departments')->insertGetId(['name' => 'Multimedia']);
+        $software = DB::table('departments')->insertGetId(['name' => 'Software']);
+        $mmSpec = DB::table('specializations')->insertGetId(['department_id' => $multimedia, 'name' => 'MM', 'degree' => 'bachelor']);
+        $swSpec = DB::table('specializations')->insertGetId(['department_id' => $software, 'name' => 'SW', 'degree' => 'bachelor']);
+        $mmTeam = DB::table('teams')->insertGetId(['name' => 'MM', 'supervisor_id' => $sup->id, 'specialization_id' => $mmSpec, 'term_id' => $term]);
+        $swTeam = DB::table('teams')->insertGetId(['name' => 'SW', 'supervisor_id' => $sup->id, 'specialization_id' => $swSpec, 'term_id' => $term]);
+
+        $defaultSupervisor = EvaluationForm::where('kind', 'supervisor')->first();
+
+        // نموذج مشرف خاص بقسم الملتيميديا
+        $override = $this->actingAs($admin)->postJson('/api/evaluation-forms', [
+            'kind' => 'supervisor', 'degree' => null, 'department_id' => $multimedia,
+            'title' => 'نموذج مشرف الملتيميديا', 'method' => 'points', 'weight' => 50,
+            'sections' => [['id' => 's1', 'title' => 'الإنجاز', 'scope' => 'student', 'items' => [['id' => 'i1', 'text' => 'التصميم', 'max' => 50]]]],
+        ])->assertCreated()->json();
+        $this->assertSame($multimedia, $override['department_id']);
+
+        // قسم الملتيميديا يرى نموذجه الخاص بدل الافتراضي
+        $mmForms = array_column($this->actingAs($admin)->getJson("/api/teams/{$mmTeam}/evaluation")->json('forms'), 'id', 'kind');
+        $this->assertSame($override['id'], $mmForms['supervisor']);
+
+        // قسم البرمجيات يبقى على النموذج الافتراضي
+        $swForms = array_column($this->actingAs($admin)->getJson("/api/teams/{$swTeam}/evaluation")->json('forms'), 'id', 'kind');
+        $this->assertSame($defaultSupervisor->id, $swForms['supervisor']);
+    }
 }
