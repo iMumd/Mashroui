@@ -112,17 +112,24 @@ class EvaluationFormTest extends TestCase
         $this->assertSame(['examiner_bachelor', $new['key']], array_column($exSheet['forms'], 'key'));
         // المناقِش يعبّئ نماذج المناقشين لهذه المجموعة (كلها examiner)
         $this->assertSame(array_column($exSheet['forms'], 'id'), $exSheet['editable']);
-        $this->assertNotEmpty($exSheet['submissions']);
+        // المناقِش لا يرى تقييمات المناقشين الآخرين — قبل أن يعبّئ هو، لا تظهر له أي تعبئة
+        $this->assertEmpty($exSheet['submissions']);
         $this->assertSame(['student_id', 'committee_score'], array_keys($exSheet['results'][0]));
         // المناقِش يعبّئ نموذج المناقشين للمجموعة التي يناقشها
         $this->actingAs($otherSup)->putJson("/api/teams/{$team}/evaluation/{$ex->id}", $fill(5, 5))->assertOk();
+        // وبعد تعبئته يرى تعبئته هو فقط — لا تعبئات admin/committee
+        $afterSubmit = $this->actingAs($otherSup)->getJson("/api/teams/{$team}/evaluation")->assertOk()->json('submissions');
+        $this->assertSame([$otherSup->id], array_values(array_unique(array_column($afterSubmit, 'evaluator_id'))));
         // لكنه لا يعبّئ نموذج المناقشين لمجموعة لا يناقشها (ولا نموذج المشرف)
         $this->actingAs($otherSup)->putJson("/api/teams/{$team}/evaluation/{$forms['supervisor']->id}", ['answers' => []])->assertForbidden();
 
-        // مشرف المجموعة يرى علامة اللجنة أيضًا، ويعدّل نموذجه فقط
+        // مشرف المجموعة يرى علامات المناقشين كلها (admin + committee + otherSup على نموذج المناقشين)، ويعدّل نموذجه فقط
         $own = $this->actingAs($sup)->getJson("/api/teams/{$team}/evaluation")->json();
         $this->assertSame([$forms['supervisor']->id], $own['editable']);
         $this->assertContains('examiner_bachelor', array_column($own['forms'], 'key'));
+        $ownExaminers = array_values(array_unique(array_column(array_filter($own['submissions'], fn ($s) => $s['form_id'] === $ex->id), 'evaluator_id')));
+        sort($ownExaminers);
+        $this->assertSame([$admin->id, $committee->id, $otherSup->id], $ownExaminers);
     }
 
     public function test_supervision_committee_cannot_fill_the_supervisor_form(): void
