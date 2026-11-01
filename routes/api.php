@@ -157,6 +157,8 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
 
             Route::post('/teams/import/preview', [TeamImportController::class, 'preview']);
             Route::post('/teams/import/confirm', [TeamImportController::class, 'confirm']);
+            Route::get('/teams/import/latest', [TeamImportController::class, 'latest']);
+            Route::post('/teams/import/revert', [TeamImportController::class, 'revert']);
 
             // مزامنة كشف الطلبة (الإدارة العامة): رفع نسخة جديدة → معاينة الفرق → حفظ / تراجع خطوة واحدة
             Route::get('/roster/import/latest', [RosterImportController::class, 'latest']);
@@ -245,6 +247,8 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
             Route::get('/discussions/import/template', [DiscussionImportController::class, 'template']);
             Route::post('/discussions/import/preview', [DiscussionImportController::class, 'preview']);
             Route::post('/discussions/import/confirm', [DiscussionImportController::class, 'confirm']);
+            Route::get('/discussions/import/latest', [DiscussionImportController::class, 'latest']);
+            Route::post('/discussions/import/revert', [DiscussionImportController::class, 'revert']);
             Route::apiResource('discussions', DiscussionController::class)->except(['create', 'edit']);
 
             Route::get('/examiners/pool', [ExaminerController::class, 'pool']);
