@@ -30,7 +30,10 @@ class DiscussionScheduleSeeder extends Seeder
 
         $times = ['09:00', '09:30', '10:30', '11:00', '12:00', '13:00'];
 
-        $committeePool = User::where('role', 'committee')->get()->pluck('name')->all();
+        // لجنة المناقشة الواقعية: مناقشان من المشرفين (غير مشرف المجموعة) يعبّئان نموذج المناقشين كـ "مناقِشين"،
+        // ورئيس اللجنة من لجنة الإشراف. المناقشون المشرفون non-staff فلا يرون درجات بعضهم (قاعدة الرؤية).
+        $supervisors = User::where('role', 'supervisor')->where('term_id', $term->id)->get(['id', 'name', 'specialization_id']);
+        $committeePool = User::where('role', 'committee')->where('term_id', $term->id)->get(['id', 'name']);
 
         $dates = [now()->addDays(10)->toDateString(), now()->addDays(11)->toDateString(), now()->addDays(12)->toDateString(), now()->addDays(14)->toDateString()];
 
@@ -45,12 +48,19 @@ class DiscussionScheduleSeeder extends Seeder
                 continue;
             }
 
-            // pick 2-3 committee members
-            $picked = collect($committeePool)->shuffle()->take(3)->values()->all();
-            if (count($picked) < 2) {
-                $picked = ['د. سامي أبو ناصر', 'د. إيمان الحسن', 'م. رامي قاسم'];
+            // اختيار حتمي لكل مشروع: مناقشان من نفس التخصص أولًا ثم غيرهم، مع استبعاد مشرف المجموعة
+            mt_srand($project->id * 104729);
+            $peers = $supervisors->where('id', '!=', $project->supervisor_id);
+            $examiners = $peers->where('specialization_id', $project->specialization_id)->shuffle()
+                ->concat($peers->where('specialization_id', '!=', $project->specialization_id)->shuffle())
+                ->take(2)->pluck('name');
+            $head = $committeePool->shuffle()->first();
+            $names = $examiners->when($head, fn ($c) => $c->push($head->name))->filter()->values();
+            // احتياط إن ندر عدد المشرفين: لجنة من لجنة الإشراف
+            if ($names->count() < 2) {
+                $names = $committeePool->shuffle()->take(3)->pluck('name');
             }
-            $committeeStr = implode('، ', $picked);
+            $committeeStr = $names->implode('، ');
 
             Discussion::create([
                 'project_id' => $project->id,

@@ -76,9 +76,12 @@ class EvaluationResultsSeeder extends Seeder
                 }
             }
 
+            // ترشيح للتميّز من المناقشين للمجموعات ذات المستوى العالي (نجوم المناقشين في المعرض)
+            $nominate = ($form->kind === 'examiner' && $form->allow_nomination && $level >= 0.85) ? true : null;
+
             EvaluationSubmission::updateOrCreate(
                 ['form_id' => $form->id, 'team_id' => $team->id, 'evaluator_id' => $evaluatorId],
-                ['answers' => $answers, 'general_notes' => null, 'nominate' => null]
+                ['answers' => $answers, 'general_notes' => null, 'nominate' => $nominate]
             );
         }
     }
