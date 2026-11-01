@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\TaskFileController;
 use App\Http\Controllers\Api\TaskNoteController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\TeamExportController;
+use App\Http\Controllers\Api\RosterImportController;
 use App\Http\Controllers\Api\TeamImportController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\UserController;
@@ -156,6 +157,12 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
 
             Route::post('/teams/import/preview', [TeamImportController::class, 'preview']);
             Route::post('/teams/import/confirm', [TeamImportController::class, 'confirm']);
+
+            // مزامنة كشف الطلبة (الإدارة العامة): رفع نسخة جديدة → معاينة الفرق → حفظ / تراجع خطوة واحدة
+            Route::get('/roster/import/latest', [RosterImportController::class, 'latest']);
+            Route::post('/roster/import/preview', [RosterImportController::class, 'preview']);
+            Route::post('/roster/import/confirm', [RosterImportController::class, 'confirm']);
+            Route::post('/roster/import/revert', [RosterImportController::class, 'revert']);
 
             Route::get('/proposals', [ProposalController::class, 'index']);
             Route::post('/proposals', [ProposalController::class, 'store']);
