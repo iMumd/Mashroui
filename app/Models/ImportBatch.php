@@ -38,4 +38,36 @@ class ImportBatch extends Model
     {
         return $this->belongsTo(User::class, 'uploaded_by');
     }
+
+    /**
+     * يسجّل دفعة استيراد مطبَّقة ويتجاوز الدفعة السابقة من نفس النوع والفصل
+     * (لا تبقى إلا آخر دفعة قابلة للتراجع — رجوع خطوة واحدة).
+     */
+    public static function record(string $kind, ?int $termId, ?int $uploadedBy, ?string $filename, array $summary, array $reverse): self
+    {
+        self::where('kind', $kind)
+            ->where('term_id', $termId)
+            ->where('status', 'applied')
+            ->update(['status' => 'superseded']);
+
+        return self::create([
+            'term_id' => $termId,
+            'kind' => $kind,
+            'original_filename' => $filename,
+            'uploaded_by' => $uploadedBy,
+            'summary' => $summary,
+            'reverse' => $reverse,
+            'status' => 'applied',
+            'applied_at' => now(),
+        ]);
+    }
+
+    /** أحدث دفعة لنوع وفصل (لعرض الحالة وإتاحة زر التراجع) */
+    public static function latestFor(string $kind, ?int $termId): ?self
+    {
+        return self::where('kind', $kind)
+            ->where('term_id', $termId)
+            ->latest('id')
+            ->first();
+    }
 }

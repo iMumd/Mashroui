@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\RoleEnum;
+use App\Http\Controllers\Api\Concerns\ImportBatchPayload;
 use App\Http\Controllers\Controller;
-use App\Models\ImportBatch;
 use App\Services\RosterSyncService;
 use App\Support\CurrentTerm;
 use Illuminate\Http\Request;
@@ -12,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class RosterImportController extends Controller
 {
+    use ImportBatchPayload;
+
     private function authorizeSuperAdmin(Request $request): void
     {
         abort_unless(
@@ -110,20 +112,6 @@ class RosterImportController extends Controller
         $termId = $this->termId($currentTerm);
         $batch = $service->latest($termId);
 
-        return response()->json(['batch' => $batch ? $this->batchPayload($batch) : null]);
-    }
-
-    private function batchPayload(ImportBatch $batch): array
-    {
-        return [
-            'id' => $batch->id,
-            'kind' => $batch->kind,
-            'original_filename' => $batch->original_filename,
-            'summary' => $batch->summary,
-            'status' => $batch->status,
-            'can_revert' => $batch->status === 'applied',
-            'applied_at' => $batch->applied_at?->toIso8601String(),
-            'reverted_at' => $batch->reverted_at?->toIso8601String(),
-        ];
+        return response()->json(['batch' => $this->batchPayload($batch)]);
     }
 }

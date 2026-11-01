@@ -363,22 +363,7 @@ class RosterSyncService
                 }
             }
 
-            // لا نحتفظ إلا بآخر دفعة قابلة للتراجع من نفس النوع والفصل
-            ImportBatch::where('kind', 'student_roster')
-                ->where('term_id', $termId)
-                ->where('status', 'applied')
-                ->update(['status' => 'superseded']);
-
-            return ImportBatch::create([
-                'term_id' => $termId,
-                'kind' => 'student_roster',
-                'original_filename' => $filename,
-                'uploaded_by' => $uploadedBy,
-                'summary' => $diff['summary'],
-                'reverse' => $reverse,
-                'status' => 'applied',
-                'applied_at' => now(),
-            ]);
+            return ImportBatch::record('student_roster', $termId, $uploadedBy, $filename, $diff['summary'], $reverse);
         });
 
         return ['batch' => $batch, 'summary' => $diff['summary']];
@@ -433,10 +418,7 @@ class RosterSyncService
     /** أحدث دفعة لنوع وفصل (لعرض الحالة وزر التراجع) */
     public function latest(?int $termId): ?ImportBatch
     {
-        return ImportBatch::where('kind', 'student_roster')
-            ->where('term_id', $termId)
-            ->latest('id')
-            ->first();
+        return ImportBatch::latestFor('student_roster', $termId);
     }
 
     private function createStudent(array $row, ?int $termId): User
