@@ -110,10 +110,17 @@ class EvaluationFormController extends Controller
         $forms = $service->formsFor($team)->when(! $isStaff, fn ($f) => $f->filter(fn ($form) => $own || $form->kind === 'examiner')->values());
         $examinerForms = $forms->where('kind', 'examiner')->pluck('id');
 
+        // رؤية التعبئات لغير الموظفين: مشرف المجموعة يرى تقييمات المناقشين كلها (علامات المناقشة لمجموعته)،
+        // أمّا المناقِش فيرى تعبئته هو فقط — فالمناقشون لا يرون درجات بعضهم.
         $submissions = EvaluationSubmission::with('evaluator:id,name,role')
             ->where('team_id', $team->id)
             ->whereIn('form_id', $forms->pluck('id'))
-            ->when(! $isStaff, fn ($q) => $q->where(fn ($q) => $q->where('evaluator_id', $user->id)->orWhereIn('form_id', $examinerForms)))
+            ->when(! $isStaff, fn ($q) => $q->where(function ($q) use ($user, $own, $examinerForms) {
+                $q->where('evaluator_id', $user->id);
+                if ($own) {
+                    $q->orWhereIn('form_id', $examinerForms);
+                }
+            }))
             ->get();
 
         $results = Evaluation::where('team_id', $team->id)->get(['student_id', 'score', 'supervisor_score', 'committee_score']);
