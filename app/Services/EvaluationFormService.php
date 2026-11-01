@@ -18,15 +18,32 @@ use Illuminate\Validation\ValidationException;
  */
 class EvaluationFormService
 {
-    /** نماذج المشرف ثم نماذج المناقشين المطبّقة على درجة تخصص المجموعة (نموذج بلا درجة = لكل الدرجات) */
+    /**
+     * نماذج المشرف ثم نماذج المناقشين المطبّقة على المجموعة:
+     * نموذج بلا درجة = لكل الدرجات، ونموذج بلا قسم = افتراضي لكل الأقسام.
+     * وإن وُجد نموذج خاص بقسم المجموعة (لنفس النوع) تقدّم على الافتراضي.
+     */
     public function formsFor(Team $team): Collection
     {
         $degree = $team->specialization?->degree?->value ?? $team->specialization?->degree;
+        $departmentId = $team->specialization?->department_id;
 
-        return EvaluationForm::where(fn ($q) => $q->whereNull('degree')->orWhere('degree', $degree))
+        $forms = EvaluationForm::where(fn ($q) => $q->whereNull('degree')->orWhere('degree', $degree))
+            ->where(fn ($q) => $q->whereNull('department_id')->orWhere('department_id', $departmentId))
             ->orderByRaw("kind = 'examiner'")
             ->orderBy('id')
             ->get();
+
+        // تخصيص القسم يتقدّم على الافتراضي: ضمن كل نوع، إن وُجد نموذج خاص بقسم المجموعة نتجاهل الافتراضي
+        if ($departmentId) {
+            $forms = $forms->groupBy('kind')->flatMap(function (Collection $group) {
+                $specific = $group->whereNotNull('department_id');
+
+                return $specific->isNotEmpty() ? $specific : $group;
+            });
+        }
+
+        return $forms->values();
     }
 
     /** مجموعات يناقشها المستخدم في مناقشات منشورة — لجنة المناقشة نص أسماء: "أ، ب | ملاحظة" */
