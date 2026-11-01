@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\DiscussionScheduled;
 use App\Models\Discussion;
+use App\Models\ImportBatch;
 use App\Models\Team;
 use App\Rules\WhatsappNumber;
 use App\Support\DiscussionScheduleGuard;
@@ -282,7 +283,10 @@ class DiscussionImportService
         return [$kept, $conflicts];
     }
 
-    public function confirm(array $rows, int $termId): array
+    /** الحقول التي يكتبها الاستيراد فوق موعد قائم — تُلتقَط في اللقطة العكسية للتراجع */
+    private const SNAPSHOT_FIELDS = ['supervisor_id', 'place', 'discussion_date', 'discussion_time', 'duration', 'committee', 'whatsapp', 'status'];
+
+    public function confirm(array $rows, int $termId, ?int $uploadedBy = null, ?string $filename = null): array
     {
         $result = $this->validate($rows, $termId);
 
@@ -290,10 +294,13 @@ class DiscussionImportService
             return $result;
         }
 
-        $created = DB::transaction(function () use ($rows, $termId) {
+        $created = DB::transaction(function () use ($rows, $termId, $uploadedBy, $filename) {
             $discussions = [];
+            $reverse = ['created' => [], 'updated' => []];
 
             foreach ($rows as $row) {
+                $existing = Discussion::where('project_id', $row['project_id'])->where('term_id', $termId)->first();
+
                 // إعادة الرفع بعد التعديل تحدّث موعد نفس المشروع بدل إنشاء موعد مكرّر
                 $discussion = Discussion::updateOrCreate(
                     ['project_id' => $row['project_id'], 'term_id' => $termId],
@@ -309,15 +316,59 @@ class DiscussionImportService
                     ]
                 );
 
+                if ($existing) {
+                    $before = [];
+                    foreach (self::SNAPSHOT_FIELDS as $field) {
+                        $before[$field] = $existing->getRawOriginal($field);
+                    }
+                    $reverse['updated'][] = ['id' => $discussion->id, 'before' => $before];
+                } else {
+                    $reverse['created'][] = $discussion->id;
+                }
+
                 DiscussionScheduled::dispatch($discussion);
 
                 $discussions[] = $discussion;
             }
 
+            ImportBatch::record('discussions', $termId, $uploadedBy, $filename, [
+                'created' => count($reverse['created']), 'updated' => count($reverse['updated']),
+            ], $reverse);
+
             return $discussions;
         });
 
         return ['valid' => [], 'invalid' => [], 'created' => $created];
+    }
+
+    /** أحدث دفعة استيراد مناقشات (لعرض الحالة وإتاحة زر التراجع) */
+    public function latest(?int $termId): ?ImportBatch
+    {
+        return ImportBatch::latestFor('discussions', $termId);
+    }
+
+    /** يتراجع عن آخر استيراد مناقشات: يحذف المواعيد المُنشأة ويعيد المواعيد المعدّلة كما كانت */
+    public function revert(ImportBatch $batch): void
+    {
+        if ($batch->status !== 'applied') {
+            return;
+        }
+
+        $reverse = $batch->reverse ?? [];
+
+        DB::transaction(function () use ($batch, $reverse) {
+            foreach ($reverse['created'] ?? [] as $id) {
+                Discussion::whereKey($id)->delete();
+            }
+
+            foreach ($reverse['updated'] ?? [] as $entry) {
+                Discussion::whereKey($entry['id'])->update($entry['before']);
+            }
+
+            $batch->status = 'reverted';
+            $batch->reverted_at = now();
+            $batch->save();
+        });
     }
 
     /** قالب استيراد فعلي: صف جاهز لكل فريق له مشروع قيد التنفيذ وما إله موعد مناقشة بعد — بنفس أعمدة الاستيراد بالضبط */
