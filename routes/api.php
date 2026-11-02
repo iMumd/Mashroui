@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\AcademicTermController;
-use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AiProjectExportController;
 use App\Http\Controllers\Api\AiProjectSourceController;
+use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AssistantController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BulkNotifyController;
@@ -13,8 +13,10 @@ use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DiscussionController;
 use App\Http\Controllers\Api\DiscussionExportController;
 use App\Http\Controllers\Api\DiscussionImportController;
-use App\Http\Controllers\Api\ExaminerController;
 use App\Http\Controllers\Api\EmailRelayController;
+use App\Http\Controllers\Api\EvaluationController;
+use App\Http\Controllers\Api\EvaluationFormController;
+use App\Http\Controllers\Api\ExaminerController;
 use App\Http\Controllers\Api\FinalReportController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\MagicLoginController;
@@ -23,23 +25,21 @@ use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\MessageDeliveryController;
 use App\Http\Controllers\Api\MessageTemplateController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProgressController;
 use App\Http\Controllers\Api\ProgressExportController;
-use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProjectController;
-use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ProjectFileController;
 use App\Http\Controllers\Api\ProposalController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\RosterImportController;
 use App\Http\Controllers\Api\SpecializationController;
 use App\Http\Controllers\Api\StatsController;
-use App\Http\Controllers\Api\EvaluationController;
-use App\Http\Controllers\Api\EvaluationFormController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TaskFileController;
 use App\Http\Controllers\Api\TaskNoteController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\TeamExportController;
-use App\Http\Controllers\Api\RosterImportController;
 use App\Http\Controllers\Api\TeamImportController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\UserController;
@@ -48,7 +48,7 @@ use App\Http\Controllers\Api\WhatsappSendController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:login');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:forgot-password');
 Route::get('/invite/{token}', [InviteController::class, 'status'])->middleware('throttle:invite-accept');
 Route::post('/invite/{token}/accept', [InviteController::class, 'accept'])->middleware('throttle:invite-accept');
 Route::post('/magic-login/{token}', [MagicLoginController::class, 'consume'])->middleware('throttle:invite-accept');
@@ -95,8 +95,8 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         Route::post('/users/{user}/set-password', [UserController::class, 'setPassword']);
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
 
-        Route::post('/email/send', [EmailRelayController::class, 'send']);
-        Route::post('/whatsapp/send', [WhatsappSendController::class, 'send']);
+        Route::post('/email/send', [EmailRelayController::class, 'send'])->middleware('throttle:email-send');
+        Route::post('/whatsapp/send', [WhatsappSendController::class, 'send'])->middleware('throttle:email-send');
 
         Route::get('/message-templates', [MessageTemplateController::class, 'index']);
         Route::post('/message-templates', [MessageTemplateController::class, 'store']);
@@ -118,7 +118,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         Route::delete('/restrictions/{restriction}', [UserRestrictionController::class, 'destroy']);
 
         Route::post('/notify/bulk/preview', [BulkNotifyController::class, 'preview']);
-        Route::post('/notify/bulk/send', [BulkNotifyController::class, 'send']);
+        Route::post('/notify/bulk/send', [BulkNotifyController::class, 'send'])->middleware('throttle:bulk-notify');
 
         Route::get('/message-deliveries', [MessageDeliveryController::class, 'index']);
         Route::post('/message-deliveries/{delivery}/retry', [MessageDeliveryController::class, 'retry']);
