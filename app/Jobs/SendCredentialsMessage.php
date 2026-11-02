@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\DeliveryStatusEnum;
 use App\Enums\NotificationChannelEnum;
+use App\Mail\AccountInviteMail;
 use App\Models\InviteLink;
 use App\Models\MessageDelivery;
 use App\Models\User;
@@ -29,10 +30,7 @@ class SendCredentialsMessage implements ShouldQueue
             $message = "مرحباً {$user->name}، رابط تفعيل حسابك على منصة مسار: {$link}";
 
             match ($this->delivery->channel) {
-                NotificationChannelEnum::Email => Mail::raw(
-                    $message,
-                    fn ($mail) => $mail->to($user->email)->subject('دعوة لتفعيل حسابك - مسار')
-                ),
+                NotificationChannelEnum::Email => Mail::to($user->email)->send(new AccountInviteMail($user->name, $link)),
                 NotificationChannelEnum::Whatsapp => $this->sendWhatsapp($whatsapp, $user, $message),
             };
 

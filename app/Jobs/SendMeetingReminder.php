@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Enums\NotificationChannelEnum;
+use App\Mail\GenericNotice;
 use App\Models\MeetingReminder;
 use App\Models\Notification;
 use App\Services\WhatsappService;
@@ -28,9 +29,9 @@ class SendMeetingReminder implements ShouldQueue
 
         foreach ($recipients as $user) {
             if ($this->reminder->channel === NotificationChannelEnum::Email) {
-                Mail::raw($message, function ($mail) use ($user, $meeting) {
-                    $mail->to($user->email)->subject("تذكير اجتماع: {$meeting->title}");
-                });
+                Mail::to($user->email)->send(
+                    new GenericNotice("تذكير اجتماع: {$meeting->title}", 'تذكير باجتماع قادم', $message)
+                );
             }
 
             if ($this->reminder->channel === NotificationChannelEnum::Whatsapp && $user->whatsapp) {

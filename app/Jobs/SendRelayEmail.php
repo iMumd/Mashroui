@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Mail\GenericNotice;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Mail;
@@ -18,8 +19,6 @@ class SendRelayEmail implements ShouldQueue
 
     public function handle(): void
     {
-        Mail::raw($this->body, function ($mail) {
-            $mail->to($this->to)->subject($this->subject);
-        });
+        Mail::to($this->to)->send(new GenericNotice($this->subject, $this->subject, $this->body));
     }
 }
