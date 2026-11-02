@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\UserStatusEnum;
 use App\Http\Controllers\Controller;
-use App\Jobs\SendRelayEmail;
+use App\Mail\PasswordResetMail;
 use App\Models\InviteLink;
 use App\Models\User;
 use App\Support\Rbac\AccessControl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -32,13 +33,7 @@ class AuthController extends Controller
 
             $url = rtrim(config('app.frontend_url'), '/').'/reset-password?token='.$invite->token;
 
-            SendRelayEmail::dispatch(
-                $user->email,
-                'إعادة تعيين كلمة المرور - '.config('app.name'),
-                "مرحبًا {$user->name}،\n\nوصلنا طلب لإعادة تعيين كلمة مرورك على منصة ".config('app.name').".\n"
-                    ."اضغط/اضغطي الرابط التالي لتعيين كلمة مرور جديدة (صالح لمدة ساعتين):\n{$url}\n\n"
-                    .'إذا لم تطلب/تطلبي هذا، تجاهل/تجاهلي هذه الرسالة.'
-            );
+            Mail::to($user->email)->queue(new PasswordResetMail($user->name, $url));
         }
 
         // ما منفصح إذا البريد مسجّل عنا أو لأ — حماية من تسريب معلومة وجود الحساب
